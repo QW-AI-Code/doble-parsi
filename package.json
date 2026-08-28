@@ -1,0 +1,40 @@
+{
+  "name": "doble-parsi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI live dubbing of browser tab audio, with MP3 and SRT/VTT subtitle output. Chrome/Edge Manifest V3 extension.",
+  "license": "MIT",
+  "author": "QW-AI-Code (https://github.com/QW-AI-Code)",
+  "homepage": "https://github.com/QW-AI-Code/doble-parsi#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QW-AI-Code/doble-parsi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/QW-AI-Code/doble-parsi/issues"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "dubbing",
+    "translation",
+    "subtitles",
+    "srt",
+    "vtt",
+    "mp3",
+    "persian",
+    "farsi"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "node scripts/lint.mjs",
+    "test": "node --test",
+    "build": "node scripts/build.mjs",
+    "verify": "npm run lint && npm test && npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

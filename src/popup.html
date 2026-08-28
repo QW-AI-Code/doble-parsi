@@ -1,0 +1,219 @@
+<!doctype html>
+<!--
+  دوبله پارسی — رابط کاربری
+  ساخته‌شده توسط QW-AI-Code — https://github.com/QW-AI-Code
+-->
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>دوبله پارسی</title>
+    <link rel="stylesheet" href="./popup.css" />
+    <script type="module" src="./popup.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <img class="logo" src="../assets/icons/icon128.png" alt="" width="36" height="36" />
+        <div class="titles">
+          <h1 data-i18n="app.name">دوبله پارسی</h1>
+          <p data-i18n="app.tagline">دوبله زنده صدای تب + خروجی MP3 و زیرنویس</p>
+        </div>
+        <div class="top-actions">
+          <div class="langswitch" id="langSwitch" role="group" data-i18n-title="app.langSwitch" aria-label="زبان">
+            <button type="button" class="langbtn" data-lang="fa">فا</button>
+            <button type="button" class="langbtn" data-lang="en">EN</button>
+          </div>
+          <a class="ghbtn" id="ghTop" href="https://github.com/QW-AI-Code" target="_blank" rel="noopener noreferrer"
+             data-i18n-title="foot.github" aria-label="GitHub">
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.05-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.13 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+            </svg>
+          </a>
+        </div>
+      </header>
+
+      <div class="status" id="status">
+        <span class="dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">آماده</span>
+        <span class="timer" id="timer">۰۰:۰۰</span>
+      </div>
+
+      <p class="alert" id="alert" hidden></p>
+
+      <section class="card">
+        <label class="field">
+          <span class="label" data-i18n="field.apiKey">کلید API جِمینای</span>
+          <span class="key-row">
+            <input id="apiKey" type="password" placeholder="AIza..." autocomplete="off" spellcheck="false" />
+            <button class="ghost" id="toggleKey" type="button" data-i18n="btn.show">نمایش</button>
+          </span>
+          <span class="hint" data-i18n="hint.apiKey">کلید فقط روی همین مرورگر ذخیره می‌شود.</span>
+        </label>
+
+        <label class="field">
+          <span class="label" data-i18n="field.targetLang">زبان دوبله</span>
+          <select id="targetLang"></select>
+          <span class="hint" data-i18n="hint.autoVoice">صدای دوبله خودکار از گویندهٔ اصلی تقلید می‌شود.</span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title" data-i18n="section.outputs">خروجی‌ها</h2>
+
+        <label class="switch-row">
+          <span class="row-text">
+            <strong data-i18n="sw.livePlayback">پخش زنده دوبله</strong>
+            <em data-i18n="sw.livePlayback.desc">همزمان با تماشا، صدای دوبله را بشنو</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="livePlayback" class="switch" />
+          </span>
+        </label>
+
+        <label class="switch-row" id="duckRow">
+          <span class="row-text">
+            <strong data-i18n="sw.duck">کم‌کردن صدای اصلی</strong>
+            <em data-i18n="sw.duck.desc">وقتی گوینده حرف می‌زند، صدای اصلی پایین می‌آید</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="duckOriginal" class="switch" />
+          </span>
+        </label>
+
+        <label class="switch-row">
+          <span class="row-text">
+            <strong data-i18n="sw.mp3">ذخیره فایل MP3</strong>
+            <em data-i18n="sw.mp3.desc">صدای دوبله‌شده به‌صورت فایل صوتی دانلود می‌شود</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="saveMp3" class="switch" />
+          </span>
+        </label>
+
+        <div class="sub" id="mp3Options">
+          <label class="field">
+            <span class="label" data-i18n="field.mp3Source">محتوای فایل</span>
+            <select id="mp3Source">
+              <option value="mix" data-i18n="opt.mix">دوبله + صدای اصلی (میکس)</option>
+              <option value="dub" data-i18n="opt.dub">فقط صدای دوبله</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label" data-i18n="field.bitrate">کیفیت</span>
+            <select id="mp3Bitrate">
+              <option value="96000" data-i18n="opt.96">۹۶ کیلوبیت</option>
+              <option value="128000" data-i18n="opt.128">۱۲۸ کیلوبیت</option>
+              <option value="192000" data-i18n="opt.192">۱۹۲ کیلوبیت</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="switch-row">
+          <span class="row-text">
+            <strong data-i18n="sw.subtitle">ذخیره زیرنویس</strong>
+            <em data-i18n="sw.subtitle.desc">متن دوبله با زمان‌بندی، به‌صورت فایل زیرنویس</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="saveSubtitle" class="switch" />
+          </span>
+        </label>
+
+        <div class="sub" id="subtitleOptions">
+          <label class="field">
+            <span class="label" data-i18n="field.subFormat">فرمت</span>
+            <select id="subtitleFormat">
+              <option value="srt">SRT</option>
+              <option value="vtt">VTT</option>
+              <option value="both" data-i18n="opt.both">هر دو</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="label" data-i18n="field.offset">جبران تاخیر (میلی‌ثانیه)</span>
+            <input id="subtitleOffsetMs" type="number" min="0" max="6000" step="100" />
+          </label>
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.bilingual">زیرنویس زبان اصلی هم ذخیره شود</strong>
+              <em data-i18n="sw.bilingual.desc">یک فایل جدا با متن زبان مبدأ</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="bilingualSubtitle" class="switch" />
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card live" id="livePanel" hidden>
+        <h2 class="card-title" data-i18n="section.liveText">متن زنده</h2>
+        <p class="caption-dub" id="captionDub"></p>
+        <p class="caption-src" id="captionSrc"></p>
+        <div class="meters">
+          <span id="meterCues"></span>
+          <span id="meterAudio"></span>
+        </div>
+      </section>
+
+      <section class="card results" id="results" hidden>
+        <h2 class="card-title" data-i18n="section.files">فایل‌های ذخیره‌شده</h2>
+        <p class="hint folder-path" id="fileFolder" dir="ltr" hidden></p>
+        <ul id="fileList"></ul>
+        <div class="result-actions">
+          <button class="ghost" id="copyTranscript" type="button" data-i18n="btn.copy">کپی متن دوبله</button>
+          <button class="ghost" id="openDownloads" type="button" data-i18n="btn.downloads">پوشه دانلود</button>
+        </div>
+      </section>
+
+      <button class="primary" id="action" type="button">
+        <span class="rec"></span>
+        <span id="actionLabel" data-i18n="btn.start">شروع دوبله</span>
+      </button>
+
+      <details class="advanced">
+        <summary data-i18n="section.advanced">تنظیمات پیشرفته</summary>
+
+        <div class="adv-body">
+          <label class="switch-row">
+            <span class="row-text">
+              <strong data-i18n="sw.originalName">هم‌نام با ویدئوی اصلی</strong>
+              <em data-i18n="sw.originalName.desc">فایل‌ها با نام خودِ ویدئو ذخیره می‌شوند، نه نام تصادفی</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="useOriginalFilename" class="switch" />
+            </span>
+          </label>
+          <p class="hint" data-i18n="hint.folders">خروجی‌ها مرتب ذخیره می‌شوند: پوشهٔ دانلود ← «Doble Parsi» ← پوشه‌ای هم‌نام ویدئو ← فایل صوتی و زیرنویس.</p>
+
+          <label class="field">
+            <span class="label" data-i18n="field.translateModel">مدل ترجمه</span>
+            <input id="translateModel" type="text" spellcheck="false" dir="ltr" />
+            <span class="hint" data-i18n="hint.model">اگر مدل پیش‌فرض جواب نداد، مدل Live دیگری را امتحان کن.</span>
+          </label>
+          <label class="field">
+            <span class="label" data-i18n="field.duckLevel">سطح صدای اصلی هنگام دوبله</span>
+            <input id="duckLevel" type="range" min="0" max="0.6" step="0.02" />
+          </label>
+        </div>
+      </details>
+
+      <p class="foot" data-i18n="foot.hint">صدای تب فعال گرفته می‌شود؛ برای شروع، تب ویدیو را باز و پخش کن.</p>
+
+      <footer class="credit">
+        <a class="credit-link" href="https://github.com/QW-AI-Code" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.05-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.13 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+          </svg>
+          <span class="credit-by" data-i18n="foot.by">ساخته‌شده توسط</span>
+          <strong>QW-AI-Code</strong>
+        </a>
+        <span class="credit-legal">© <span id="year">2026</span> QW-AI-Code · <span data-i18n="foot.rights">همهٔ حقوق محفوظ است.</span></span>
+      </footer>
+    </div>
+  </body>
+</html>

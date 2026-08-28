@@ -1,0 +1,107 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: build and publish release
+    runs-on: ubuntu-latest
+    env:
+      CRX_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Read version and set tag
+        id: meta
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./manifest.json').version")"
+          tag="v$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Publishing release for version $version with tag $tag"
+
+      - name: Build the extension
+        run: npm run build
+
+      - name: Set up Chrome for signing
+        id: chrome
+        if: env.CRX_KEY != ''
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Pack a signed CRX
+        if: env.CRX_KEY != ''
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          CHROME: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/doble-parsi.pem"
+          printf '%s\n' "$CRX_KEY" > "$key"
+          chmod 600 "$key"
+          "$CHROME" --no-sandbox \
+            --pack-extension="$GITHUB_WORKSPACE/dist/doble-parsi" \
+            --pack-extension-key="$key"
+          rm -f "$key"
+          mv dist/doble-parsi.crx "dist/doble-parsi-$VERSION.crx"
+          echo "packed dist/doble-parsi-$VERSION.crx"
+
+      - name: Note the skipped CRX
+        if: env.CRX_KEY == ''
+        run: echo "No CRX_PRIVATE_KEY secret is configured, publishing ZIP and checksums."
+
+      - name: Write SHA-256 checksums
+        working-directory: dist
+        run: |
+          set -uo pipefail
+          rm -f checksums.txt
+          for file in *.zip *.crx; do
+            [ -f "$file" ] && sha256sum "$file" >> checksums.txt
+          done
+          cat checksums.txt
+
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Doble Parsi ${{ steps.meta.outputs.tag }}
+          body_path: .github/release-notes.md
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: false
+          files: |
+            dist/doble-parsi-${{ steps.meta.outputs.version }}-chrome.zip
+            dist/*.crx

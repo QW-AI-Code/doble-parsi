@@ -1,0 +1,24 @@
+# build output
+dist/
+*.zip
+*.crx
+*.pem
+
+# dependencies
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# environment / secrets
+.env
+.env.*
+*.key
+
+# editors & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,18 @@
+{
+  "appName": {
+    "message": "دوبله پارسی — Doble Parsi",
+    "description": "نام کامل افزونه که در chrome://extensions و فروشگاه دیده می‌شود."
+  },
+  "appShortName": {
+    "message": "دوبله پارسی",
+    "description": "نام کوتاه برای زیر آیکون."
+  },
+  "appDescription": {
+    "message": "دوبله زندهٔ صدای تب مرورگر با هوش مصنوعی + ذخیرهٔ MP3 و زیرنویس SRT/VTT هم‌نام ویدئو.",
+    "description": "توضیح یک‌خطی افزونه."
+  },
+  "actionTitle": {
+    "message": "دوبله پارسی — دوبلهٔ زندهٔ همین تب",
+    "description": "متن راهنمای دکمهٔ افزونه در نوار ابزار."
+  }
+}

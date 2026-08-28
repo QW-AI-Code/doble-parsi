@@ -1,0 +1,18 @@
+{
+  "appName": {
+    "message": "Doble Parsi — دوبله پارسی",
+    "description": "Full extension name shown on chrome://extensions and in stores."
+  },
+  "appShortName": {
+    "message": "Doble Parsi",
+    "description": "Short name shown under the icon."
+  },
+  "appDescription": {
+    "message": "AI live dubbing of your browser tab audio, plus MP3 and SRT/VTT subtitles named after the video.",
+    "description": "One-line extension description."
+  },
+  "actionTitle": {
+    "message": "Doble Parsi — dub this tab live",
+    "description": "Toolbar button tooltip."
+  }
+}

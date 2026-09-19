@@ -310,7 +310,7 @@ Needs your own free [Gemini API key](https://aistudio.google.com/apikey) and Chr
 
 Bug reports with the **site** and the **scenario** are the most useful thing you can send — that is exactly how the CC bug above was found.
 
-
+___
 <div dir="rtl">
 
 ⚠️ **توجه:**  

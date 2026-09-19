@@ -129,7 +129,7 @@ const UNSAFE = [
   [/\.innerHTML\s*=/, "assign textContent instead of innerHTML"],
   [/document\.write\s*\(/, "document.write() is not allowed"],
   [/<script[^>]+src=["']https?:/i, "remote script tags are not allowed"],
-  [/https?:\/\/(?!generativelanguage\.googleapis\.com|github\.com|aistudio\.google\.com|www\.w3\.org|developer\.chrome\.com|chromewebstore\.google\.com|microsoftedge\.microsoft\.com|opensource\.org|img\.shields\.io|mozilla\.org|nodejs\.org)[^\s"')]+/, "unexpected remote origin"]
+  [/https?:\/\/(?!generativelanguage\.googleapis\.com|github\.com|aistudio\.google\.com|www\.w3\.org|developer\.chrome\.com|chromewebstore\.google\.com|microsoftedge\.microsoft\.com|opensource\.org|img\.shields\.io|ai\.dev|mozilla\.org|nodejs\.org)[^\s"')]+/, "unexpected remote origin"]
 ];
 for (const rel of shippedAssets) {
   const text = await read(rel);
@@ -175,6 +175,27 @@ for (const rel of shippedAssets) {
   for (const hit of text.matchAll(/(?:src|href)="(\.[^"]+)"|url\("(\.[^"]+)"\)/g)) {
     const target = (hit[1] ?? hit[2]).split("?")[0];
     if (!existsSync(path.join(root, dir, target))) fail(`${rel}: "${target}" points nowhere`);
+  }
+}
+
+/* 10 ─ injected stage bundle ---------------------------------------------- */
+// اسکریپت صحنه با files: تزریق می‌شود، پس اسکریپت کلاسیک است نه ماژول.
+// یک import/export فراموش‌شده در آن، فقط سر ویدئوی کاربر معلوم می‌شود.
+const worker = await read("src/service-worker.js");
+const listed = /const STAGE_FILES = \[([^\]]+)\]/.exec(worker);
+if (!listed) fail("src/service-worker.js no longer declares STAGE_FILES");
+else {
+  const files = [...listed[1].matchAll(/"([^"]+)"/g)].map((hit) => hit[1]);
+  if (!files.length) fail("STAGE_FILES is empty");
+  for (const rel of files) {
+    if (!existsSync(path.join(root, rel))) {
+      fail(`STAGE_FILES references a missing file: ${rel}`);
+      continue;
+    }
+    const text = await read(rel);
+    if (/^\s*(export|import)\s/m.test(text)) {
+      fail(`${rel} is injected as a classic script, so it must not use import/export`);
+    }
   }
 }
 

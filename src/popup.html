@@ -41,7 +41,9 @@
 
       <p class="alert" id="alert" hidden></p>
 
-      <section class="card">
+      <details class="card fold" data-section="keys">
+        <summary data-i18n="section.keys">کلید API و زبان</summary>
+        <div class="fold-body">
         <label class="field">
           <span class="label" data-i18n="field.apiKey">کلید API جِمینای</span>
           <span class="key-row">
@@ -51,15 +53,29 @@
           <span class="hint" data-i18n="hint.apiKey">کلید فقط روی همین مرورگر ذخیره می‌شود.</span>
         </label>
 
-        <label class="field">
-          <span class="label" data-i18n="field.targetLang">زبان دوبله</span>
-          <select id="targetLang"></select>
-          <span class="hint" data-i18n="hint.autoVoice">صدای دوبله خودکار از گویندهٔ اصلی تقلید می‌شود.</span>
-        </label>
-      </section>
+        <div class="field">
+          <button class="ghost wide" id="apiTest" type="button" data-i18n="btn.apiTest">تست کلید و اتصال</button>
+          <span class="hint" id="apiStatus"></span>
+        </div>
 
-      <section class="card">
-        <h2 class="card-title" data-i18n="section.outputs">خروجی‌ها</h2>
+        <label class="field">
+          <span class="label" data-i18n="field.targetLang">زبان ترجمه</span>
+          <select id="targetLang"></select>
+          <span class="hint" data-i18n="hint.targetLang">زبان ویدئو خودکار تشخیص داده می‌شود؛ فقط بگو به چه زبانی ترجمه شود.</span>
+        </label>
+
+        <label class="field">
+          <span class="label" data-i18n="field.tone">لحن ترجمه (اختیاری)</span>
+          <textarea id="tonePrompt" rows="2" maxlength="400" spellcheck="false"
+                    data-i18n-ph="ph.tone" placeholder="مثلاً: محاوره‌ای و خودی، یا رسمی و کتابی"></textarea>
+          <span class="hint" data-i18n="hint.tone">روی زیرنویس اثر می‌گذارد، نه روی صدای دوبلهٔ زنده.</span>
+        </label>
+      </div>
+      </details>
+
+      <details class="card fold" data-section="outputs">
+        <summary data-i18n="section.outputs">خروجی‌ها</summary>
+        <div class="fold-body">
 
         <label class="switch-row">
           <span class="row-text">
@@ -147,7 +163,205 @@
             </span>
           </label>
         </div>
-      </section>
+      </div>
+      </details>
+
+      <details class="card fold stage" data-section="stage">
+        <summary data-i18n="section.stage">نمایش روی ویدئو</summary>
+        <div class="fold-body">
+
+        <label class="switch-row">
+          <span class="row-text">
+            <strong data-i18n="sw.overlay">زیرنویس روی خودِ ویدئو</strong>
+            <em data-i18n="sw.overlay.desc">متن روی تصویر دیده می‌شود، نه فقط داخل این پنجره</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="overlay" class="switch" />
+          </span>
+        </label>
+
+        <div class="sub" id="overlayOptions">
+          <div class="field">
+            <span class="label" data-i18n="field.theme">قالب</span>
+            <div class="themes" id="themeChips" role="radiogroup"></div>
+          </div>
+
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.customColors">رنگ دلخواه</strong>
+              <em data-i18n="sw.customColors.desc">رنگ پلاک و رنگ هایلایت را خودت انتخاب کن</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="overlayCustomColors" class="switch" />
+            </span>
+          </label>
+
+          <div class="sub colors" id="colorOptions">
+            <label class="field">
+              <span class="label" data-i18n="field.plateColor">رنگ پس‌زمینه</span>
+              <input id="overlayPlate" type="color" />
+            </label>
+            <label class="field">
+              <span class="label" data-i18n="field.spokenColor">رنگ بخش گفته‌شده</span>
+              <input id="overlaySpoken" type="color" />
+            </label>
+            <label class="field wide">
+              <span class="label" data-i18n="field.plateOpacity">شفافیت پس‌زمینه</span>
+              <input id="overlayPlateOpacity" type="range" min="0" max="1" step="0.05" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="label" data-i18n="field.textSize">اندازهٔ متن</span>
+            <input id="overlayScale" type="range" />
+          </label>
+          <label class="field">
+            <span class="label" data-i18n="field.textWidth">عرض متن</span>
+            <input id="overlayWidth" type="range" min="40" max="96" step="2" />
+          </label>
+
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.karaoke">هایلایت پیش‌روندهٔ جمله</strong>
+              <em data-i18n="sw.karaoke.desc">همراه گوینده، بخش گفته‌شده رنگ می‌گیرد</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="overlayKaraoke" class="switch" />
+            </span>
+          </label>
+
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.original">نمایش متن زبان اصلی</strong>
+              <em data-i18n="sw.original.desc">به‌جای ترجمه، همان متن اصلی ویدئو روی تصویر</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="overlayOriginal" class="switch" />
+            </span>
+          </label>
+
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.contrast">تطبیق با روشنایی صحنه</strong>
+              <em data-i18n="sw.contrast.desc">روی صحنهٔ روشن، پلاک خودش تیره یا روشن می‌شود</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="overlayContrast" class="switch" />
+            </span>
+          </label>
+
+          <p class="hint" data-i18n="hint.drag">موقعیت زیرنویس را می‌توانی روی خودِ ویدئو بکشی.</p>
+        </div>
+
+        <label class="switch-row">
+          <span class="row-text">
+            <strong data-i18n="sw.siteCaptions">اول زیرنویس خودِ سایت</strong>
+            <em data-i18n="sw.siteCaptions.desc">اگر ویدئو زیرنویس زمان‌بندی‌شده دارد، همان ترجمه می‌شود</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="useSiteCaptions" class="switch" />
+          </span>
+        </label>
+
+        <div class="sub" id="siteOptions">
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.toggleCaptions">روشن‌کردن موقت CC پخش‌کننده</strong>
+              <em data-i18n="sw.toggleCaptions.desc">یوتیوب فهرست زیرنویس را تا CC روشن نشود نمی‌سازد؛ یک لحظه روشن و بعد خاموش می‌شود</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="toggleCaptions" class="switch" />
+            </span>
+          </label>
+
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.liveFallback">اگر ویدئو زیرنویس نداشت، ترجمهٔ زنده</strong>
+              <em data-i18n="sw.liveFallback.desc">صدای تب گرفته و متنش زنده روی ویدئو نوشته می‌شود، بدون صدای دوبله</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="liveFallback" class="switch" />
+            </span>
+          </label>
+
+          <label class="switch-row compact">
+            <span class="row-text">
+              <strong data-i18n="sw.autoContinue">ادامهٔ خودکار برای ویدئوی بعدی</strong>
+              <em data-i18n="sw.autoContinue.desc">ویدئوی تازه خودش گرفته و ترجمه می‌شود</em>
+            </span>
+            <span class="toggle">
+              <span class="pill" aria-hidden="true"></span>
+              <input type="checkbox" id="autoContinue" class="switch" />
+            </span>
+          </label>
+
+          <label class="field">
+            <span class="label" data-i18n="field.textModel">مدل ترجمهٔ زیرنویس</span>
+            <select id="textModel"></select>
+          </label>
+          <button class="ghost wide" id="modelProbe" type="button" data-i18n="btn.modelProbe">یافتن مدل‌هایی که روی کلید من کار می‌کنند</button>
+          <span class="hint" id="modelStatus" data-i18n="hint.modelProbe">هر بررسی چند توکن مصرف می‌کند؛ مدل‌های کم‌مصرف اول امتحان می‌شوند.</span>
+        </div>
+
+        <label class="switch-row">
+          <span class="row-text">
+            <strong data-i18n="sw.memory">حافظهٔ ترجمه</strong>
+            <em data-i18n="sw.memory.desc">هر خط یک بار ترجمه می‌شود؛ بازتماشا رایگان است</em>
+          </span>
+          <span class="toggle">
+            <span class="pill" aria-hidden="true"></span>
+            <input type="checkbox" id="translationMemory" class="switch" />
+          </span>
+        </label>
+
+        <div class="sub memory-row" id="memoryOptions">
+          <span class="hint" id="memoryStat"></span>
+          <button class="ghost" id="memoryClear" type="button" data-i18n="btn.memoryClear">پاک‌کردن</button>
+        </div>
+      </div>
+      </details>
+
+      <details class="card fold usage" id="usageCard" data-section="usage">
+        <summary data-i18n="section.usage">مصرف توکن و سهمیه</summary>
+        <div class="fold-body">
+
+        <p class="quota" id="quotaBox" hidden></p>
+
+        <div class="usage-grid" id="usageGrid"></div>
+
+        <label class="field">
+          <span class="label" data-i18n="field.dailyLimit">سقف روزانهٔ توکن (از AI Studio)</span>
+          <input id="dailyLimit" type="number" min="0" step="1000" dir="ltr" placeholder="0" />
+        </label>
+
+        <div class="meter" id="usageMeter" hidden>
+          <span class="meter-fill" id="usageFill"></span>
+        </div>
+        <p class="hint" id="usageSummary"></p>
+        <p class="hint" id="usageReset"></p>
+
+        <details class="history">
+          <summary data-i18n="section.usageHistory">روزهای قبل</summary>
+          <ul id="usageHistory"></ul>
+        </details>
+
+        <div class="result-actions">
+          <button class="ghost" id="usageRefresh" type="button" data-i18n="btn.refresh">به‌روزرسانی</button>
+          <button class="ghost" id="usageClear" type="button" data-i18n="btn.usageClear">صفر کردن شمارنده</button>
+          <a class="ghost" id="usageDashboard" href="https://ai.dev/usage?tab=rate-limit" target="_blank"
+             rel="noopener noreferrer" data-i18n="btn.dashboard">داشبورد رسمی گوگل</a>
+        </div>
+        <p class="hint" data-i18n="hint.usage">گوگل API رسمی برای «باقی‌ماندهٔ سهمیه» ندارد؛ این اعداد شمارش خودِ افزونه‌اند و تقریبی‌اند.</p>
+      </div>
+      </details>
 
       <section class="card live" id="livePanel" hidden>
         <h2 class="card-title" data-i18n="section.liveText">متن زنده</h2>
@@ -169,12 +383,24 @@
         </div>
       </section>
 
-      <button class="primary" id="action" type="button">
-        <span class="rec"></span>
-        <span id="actionLabel" data-i18n="btn.start">شروع دوبله</span>
-      </button>
+      <div class="actions">
+        <button class="primary" id="action" type="button">
+          <span class="rec"></span>
+          <span id="actionLabel" data-i18n="btn.start">شروع دوبله</span>
+        </button>
 
-      <details class="advanced">
+        <!-- دو مسیر مستقل: هر کدام تنها، یا هر دو با هم -->
+        <button class="primary subtitle" id="stageAction" type="button">
+          <span class="cc" aria-hidden="true">CC</span>
+          <span id="stageActionLabel" data-i18n="btn.stageStart">نمایش زیرنویس روی ویدئو</span>
+        </button>
+
+        <p class="hint" id="stageStatus" data-i18n="stage.hint">یک ویدئو باز کن و بزن.</p>
+        <button class="ghost wide" id="stageSave" type="button" data-i18n="btn.stageSave" hidden>ذخیرهٔ این زیرنویس</button>
+        <p class="hint pair" data-i18n="hint.bothPaths">این دو مستقل‌اند: هر کدام را تنها یا هر دو را با هم می‌توانی روشن کنی.</p>
+      </div>
+
+      <details class="advanced" data-section="advanced">
         <summary data-i18n="section.advanced">تنظیمات پیشرفته</summary>
 
         <div class="adv-body">

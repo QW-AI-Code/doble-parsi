@@ -261,6 +261,8 @@ async function startSession(request) {
     dubTranscription: true,
     sourceTranscription: wantSourceCaptions,
     onReady: () => emit({ kind: "ready" }),
+    onUsage: (sample) => emit({ kind: "usage", sample }),
+    onQuota: (message, retryMs) => emit({ kind: "quota", message, retryMs }),
     onError: (payload) => {
       session.errorPayload = payload;
       emit({ kind: "error", error: payload });

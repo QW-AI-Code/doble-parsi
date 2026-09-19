@@ -4,7 +4,7 @@
 
 # Doble Parsi — دوبله پارسی
 
-[![version](https://img.shields.io/badge/version-1.0.0-3b6dff)](https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.0)
+[![version](https://img.shields.io/badge/version-1.0.1-3b6dff)](https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.1)
 [![license](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 [![build](https://github.com/QW-AI-Code/doble-parsi/actions/workflows/build.yml/badge.svg)](https://github.com/QW-AI-Code/doble-parsi/actions/workflows/build.yml)
 [![manifest](https://img.shields.io/badge/manifest-v3-8b5cf6)](manifest.json)
@@ -17,18 +17,36 @@
 
 ---
 
-## What's new — v1.0.0
+## What's new — v1.0.1
 
-- **Live tab dubbing** — capture the active tab's sound, translate it as it plays and hear the dub with a delay of a couple of seconds.
-- **The original speaker's voice** — the live translation model reproduces the speaker's own voice, so there is no voice picker to get wrong.
-- **31 dubbing languages** — Persian is the default; Arabic, Turkish, Azerbaijani, English, German, French, Chinese, Japanese and 23 more are one dropdown away.
-- **MP3 export** — dub only, or dub mixed with the original track, at 96 / 128 / 192 kbps.
-- **SRT / VTT subtitles** — timed from the live transcript, with an adjustable delay offset and an optional second file in the source language.
-- **Files named after the video** — the real video title is read from the page, cleaned up, and used for both the folder and the file names.
-- **Tidy downloads** — every session lands in `Downloads/Doble Parsi/<video name>/`, and the `.srt` extension is never rewritten by the browser.
-- **Bilingual interface** — Persian (RTL) and English (LTR) switch instantly, with the Vazirmatn font bundled so nothing loads from the internet.
-- **Click-free audio path** — a ring-buffer player worklet plus Kaiser-windowed sinc resampling replaced the old per-chunk playback, and the encoder is fed proper 16-bit samples, so the recording no longer contains crackle or white noise.
-- **Self-healing sessions** — the socket reconnects and resumes on its own, and the session closes and still saves your files if the tab goes away.
+- **Subtitles on the video itself** — the translation sits on the picture, not only inside the popup. The stage lives in a Shadow DOM with its own stylesheet, so the site's CSS cannot reach it and it needs no `!important` anywhere. It follows the player through resizing, scrolling and fullscreen with observers instead of a polling timer, and it is injected on demand through `activeTab` — the manifest still declares no `content_scripts`.
+- **One line, right where you want it** — only the translation is shown, so the picture stays free. Hover it, grab the handle and drag: it snaps to nine anchor points and remembers the spot.
+- **Six subtitle themes** — Aurora (frosted glass with a slow colour drift), Neon, Cinema (a crisp stroke drawn with `paint-order`), Ribbon, Slate, and Paper, the one light theme. Pick one from the visual chips in the popup and the video updates instantly, mid-session.
+- **Right-to-left done properly** — a Persian line is laid out right-to-left, and Latin runs inside it (`Windows 11`, `Node.js`) are wrapped in Unicode isolates, so a mixed sentence no longer scrambles at the boundaries. The isolates never reach the exported subtitle file.
+- **Progressive sentence highlight** — the spoken part of the line colours in as it plays, painted with the CSS Custom Highlight API over a single text node, so nothing is rebuilt per frame and the text stays selectable.
+- **Automatic contrast** — a 24×8 pixel probe of the frame behind the line decides whether the plate should read light or dark. On a cross-origin video it switches itself off instead of failing.
+- **The site's own captions come first** — when a video ships a timed caption track, that track is translated instead of the audio: exact timing, no tab capture, no dubbing cost. Three discovery layers run in order — the player's own caption list, the page's network trace via `performance.getEntriesByType("resource")`, and finally `video.textTracks` read by the browser's own WebVTT parser. Short auto-caption fragments are joined into whole sentences before translation.
+- **Nothing to configure** — the source language is detected by the model, so there is no source-language picker and no model name to get right. One dropdown chooses the target language (Persian by default) and an optional text box says in what tone to translate — "casual and friendly", "formal and literary", whatever you type.
+- **Subtitle-only sessions** — "Show subtitles on the video" is its own button. You get an exactly timed translated subtitle without starting a dub at all, and you can save it as SRT or VTT with the video's real timecodes.
+- **Translation memory** — every translated line is kept in IndexedDB, per line and per video. Re-watching the same video sends zero requests, and a sentence you have met before is free in every other video too. The popup shows how much is stored and clears it on one click.
+- **A failed translation says so** — the caption path asks the model for a JSON schema instead of free text, so line numbering can never drift. If the model cannot be reached, the popup reports it instead of quietly showing you the untranslated original.
+
+- **A key test and a model finder** — one button checks the API key and the connection and says exactly what came back: works, key rejected, out of quota (with the retry delay the service asked for), or model missing. A second button probes the models one by one and lists only the ones that actually answered on *your* key, the thriftiest first, because not every model is reachable on the free tier.
+- **Token usage and quota, counted locally** — a card shows today's input, output, audio-in, audio-out and text tokens, the billed turns, the sessions and the peak context. Enter the daily budget from AI Studio and you get a progress bar, the percentage and what is left. The counter resets at midnight Pacific, the same rule the Gemini API uses for its per-day limits, and the remaining time is shown. Google exposes no endpoint for the remaining quota, so these are the extension's own numbers, read from the `usageMetadata` block that both the live socket and the subtitle requests return — approximate, with a link to Google's authoritative dashboard.
+- **Fewer, larger requests instead of more parallel ones** — a rate limit is not beaten by more concurrency, it is beaten by asking less often. Batches went from 40 to 80 lines, so the same subtitle costs half the requests. On a 429 the client drops to a single request in flight, waits exactly as long as the service asked in `retryDelay`, and stops after the second refusal rather than grinding on. What was already translated is kept and the popup says how many lines are still missing.
+
+- **One switch for the original wording** — flip it and the video shows the source line instead of the translation, in its own reading direction, on the very next frame. Both versions travel with the cue, so nothing is fetched or translated again.
+- **Your own colours** — pick the plate colour, its opacity and the colour the spoken part lights up in. Every theme accepts them, including the two that normally carry no plate at all, and switching the option off hands the colours back to the theme.
+- **Themes you can actually read** — the six samples are stacked one per row with a full sample sentence instead of three cramped columns, and they preview in the colours that will really appear on the video.
+- **Collapsible sections** — every block in the popup folds. They all start closed so the window stays short, and whichever ones you open are remembered for next time.
+
+- **A new video clears the old subtitle by itself** — the stage fingerprints what is playing and drops the previous cues the moment anything real about it changes, so a stale subtitle can no longer sit on top of the next clip. Switching on a site that never reloads the page is caught too. A notification counter jumping in the tab title is not mistaken for a new video. With "carry on with the next video" left on, the new clip is fetched and translated on its own, and because re-watching comes from translation memory, going back costs nothing.
+
+- **Two paths, side by side** — the dub button and the subtitle button sit together under the main action, the second one in its own colour. Run either alone or both at once: dubbing gives you the voice, the subtitle path gives you exactly timed text, and neither needs the other.
+- **Captions are found even when the player is late with them** — a player that has just started does not have its caption list ready, and a single look used to be reported as "this video has no captions" while it plainly had some. The list is now waited for inside the page, the player is nudged into loading its own caption module, and the whole discovery is repeated a handful of times over a few seconds. None of that costs an API request, the popup says which attempt it is on, and a player that is ready is never made to wait.
+- **No captions at all? It translates live** — when a video really ships no caption track, the audio path takes over by itself: the tab's sound is captured, translated as it plays and written on the picture, with the dub voice switched off. You get live subtitles without a dub, and the switch can be turned off if you would rather keep the quota.
+
+- **The player's own captions are switched on for you** — YouTube only builds its caption list once CC is on, which is why a video with subtitles could keep insisting it had none. Pressing the subtitle button now turns the player's CC on, takes the caption file and turns CC straight back off before translating, so its own subtitles flash by for a moment instead of sitting there the whole time. Captions you had already enabled are left alone.
 
 ## Features
 
@@ -63,7 +81,7 @@
 
 ### Easy installation in Chrome / Edge (Recommended)
 
-1. **Download the extension:** Download `doble-parsi-1.0.0-chrome.zip` from the top of the [Releases page](https://github.com/QW-AI-Code/doble-parsi/releases).
+1. **Download the extension:** Download `doble-parsi-1.0.1-chrome.zip` from the top of the [Releases page](https://github.com/QW-AI-Code/doble-parsi/releases).
 2. **Unzip the file:** Right-click the downloaded zip file and select **Extract All...** (or Unzip). You will get a regular folder containing the extension files (such as `manifest.json`, `src/`, etc.).
 3. **Open Extensions page in Chrome:** In your Chrome browser address bar, type `chrome://extensions` and press Enter. (For Microsoft Edge, go to `edge://extensions`).
 4. **Enable Developer mode:** Look at the top-right corner of the page and turn ON the toggle switch for **Developer mode**.
@@ -81,7 +99,7 @@ npm install
 npm run build
 ```
 
-`npm run build` writes the loadable folder to `dist/doble-parsi/` and the packaged archive to `dist/doble-parsi-1.0.0-chrome.zip`. Load the folder with **Load unpacked**.
+`npm run build` writes the loadable folder to `dist/doble-parsi/` and the packaged archive to `dist/doble-parsi-1.0.1-chrome.zip`. Load the folder with **Load unpacked**.
 
 ## How to use
 
@@ -146,7 +164,7 @@ There is no `tabs` permission, no `<all_urls>`, no content script and no web-acc
 | Network destinations | Exactly one: the AI live endpoint declared in `host_permissions`. No analytics, no telemetry, no error reporting. |
 | API key handling | Stored in `chrome.storage.local` on this device, hidden behind a password field, sent only to the AI endpoint over TLS. Never synced, never logged. |
 | Host access | No `<all_urls>`. Page access is limited to `activeTab`, granted only when you click the extension. |
-| Injected script | One function, metadata only. It reads titles, writes nothing and stays out of the page after it returns. |
+| Injected script | Two, both on demand and only after you click the icon: a reader that returns the video title and its caption list, and the subtitle stage, which renders inside its own Shadow DOM and touches no page node other than its own host. The reader may switch the player's own CC button on and back off, because YouTube builds its caption list only then; it changes nothing else and restores what it changed. |
 | File writes | Only through `chrome.downloads`. Paths are sanitised twice, control and illegal characters removed, `..` segments dropped, so writes cannot leave the downloads folder. |
 | Bundled encoder | A pre-built WebAssembly MP3 encoder under MPL-2.0, running in a dedicated worker with no network access. It only ever receives PCM samples. Its licence text ships in `src/vendor/`. |
 | Third-party runtime dependencies | None. `dependencies` and `devDependencies` are empty; the build, lint and test tooling is plain Node.js. |
@@ -208,11 +226,11 @@ docs/screenshots/        images used by both READMEs
 ## Publish your own copy
 
 ```bash
-git init && git add . && git commit -m "chore: release 1.0.0"
+git init && git add . && git commit -m "chore: release 1.0.1"
 git branch -M main
 git remote add origin https://github.com/<user>/doble-parsi.git
 git push -u origin main
-git tag v1.0.0 && git push origin v1.0.0
+git tag v1.0.1 && git push origin v1.0.1
 ```
 
 Pushing the tag runs `release.yml`, which builds the extension, writes `checksums.txt`, adds a `.crx` if a signing key is stored in secrets, and publishes a GitHub release whose body comes from `.github/release-notes.md`.

@@ -1,6 +1,6 @@
 {
   "name": "doble-parsi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "AI live dubbing of browser tab audio, with MP3 and SRT/VTT subtitle output. Chrome/Edge Manifest V3 extension.",
   "license": "MIT",

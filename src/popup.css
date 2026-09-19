@@ -170,7 +170,7 @@ body::before {
 .label { font-size: 11.5px; color: var(--muted); }
 .hint { margin: 0; font-size: 10.5px; color: var(--dim); line-height: 1.55; }
 
-input[type="text"], input[type="password"], input[type="number"], select {
+input[type="text"], input[type="password"], input[type="number"], select, textarea {
   width: 100%;
   padding: 8px 10px;
   border-radius: 10px;
@@ -414,3 +414,252 @@ option { background: var(--navy-800); color: var(--text); }
 .credit-legal { font-size: 9.5px; color: #5A688A; }
 
 .locked { opacity: 0.5; pointer-events: none; filter: saturate(0.6); }
+
+/* ══════════════ صحنهٔ زیرنویس روی ویدئو ══════════════ */
+
+/* تراشه‌های قالب: هر تراشه یک پیش‌نمایش کوچک از همان قالب است،
+   پس انتخاب با چشم انجام می‌شود نه با خواندن نام. */
+/* یک ستون، نه سه: نمونه باید واقعاً خوانده شود، نه حدس زده شود */
+.themes {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chip {
+  position: relative;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 52px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background:
+    linear-gradient(160deg, rgba(124, 58, 237, 0.16), rgba(46, 134, 255, 0.1)),
+    var(--navy-800);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.chip:hover { border-color: var(--line-strong); }
+.chip.is-active {
+  border-color: rgba(99, 142, 255, 0.7);
+  box-shadow: 0 0 0 1px rgba(99, 142, 255, 0.45), 0 6px 16px rgba(46, 134, 255, 0.22);
+  color: var(--text);
+}
+
+/* نوار نمونه: دقیقاً همان پلاک و همان رنگ متن قالب */
+/* نمونه حالا جای واقعی دارد: متن بزرگ‌تر و یک خط کامل */
+.chip .demo {
+  flex: 1 1 auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  min-width: 0;
+  padding: 7px 11px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chip .demo .lit { font-weight: 800; }
+.chip[data-outline="1"] .demo { text-shadow: 0 0 3px rgba(0, 0, 0, 0.95), 0 1px 2px rgba(0, 0, 0, 0.9); }
+.chip[data-glow="1"] .demo { filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.55)); }
+.chip[data-bar="1"] .demo { border-inline-start: 3px solid currentColor; border-radius: 4px; }
+.chip .name {
+  flex: 0 0 auto;
+  opacity: 0.85;
+  font-size: 11px;
+  min-width: 3.2em;
+  text-align: center;
+}
+
+/* دکمهٔ دوم: مسیر زیرنویس، جدا از دکمهٔ اصلی دوبله */
+.secondary {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px;
+  border: 1px solid rgba(99, 142, 255, 0.4);
+  border-radius: 12px;
+  background: var(--brand-soft);
+  color: #DCE7FF;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.secondary:hover { background: rgba(59, 130, 246, 0.22); border-color: rgba(99, 142, 255, 0.65); }
+.secondary:active { transform: translateY(1px); }
+.secondary:disabled { opacity: 0.55; cursor: progress; }
+.secondary.is-on { background: rgba(52, 211, 153, 0.16); border-color: rgba(52, 211, 153, 0.5); color: #C6F6E4; }
+
+.ghost.wide { grid-column: 1 / -1; text-align: center; }
+
+#stageStatus { grid-column: 1 / -1; }
+#stageStatus.is-ok { color: var(--ok); }
+#stageStatus.is-warn { color: var(--danger); }
+
+.memory-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.memory-row .hint { margin: 0; }
+
+/* فیلد لحن ترجمه: متن آزاد کاربر، پس چندخطی و بی‌کشش */
+textarea {
+  resize: none;
+  line-height: 1.7;
+  min-height: 52px;
+}
+textarea:focus, input:focus, select:focus {
+  border-color: rgba(99, 142, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.16);
+}
+textarea::placeholder { color: var(--dim); }
+
+/* ══════════════ مصرف توکن و سهمیه ══════════════ */
+
+.card.usage .card-title { margin-bottom: 2px; }
+
+/* شبکهٔ دوستونی: برچسب راست، عدد چپ‌چین و کشیده */
+.usage-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(5, 9, 20, 0.5);
+  font-size: 11.5px;
+}
+.usage-key { color: var(--muted); }
+.usage-value {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* نوار مصرف نسبت به سقف روزانه */
+.meter {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.meter-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.meter-fill.is-hot { background: linear-gradient(90deg, #F97316, var(--danger)); }
+
+/* جعبهٔ خطای سهمیه */
+.quota {
+  margin: 0;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(251, 113, 133, 0.35);
+  background: rgba(251, 113, 133, 0.12);
+  color: #FFD9DF;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.history { font-size: 11.5px; }
+.history summary { color: var(--muted); cursor: pointer; padding: 3px 0; }
+.history ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.history li {
+  display: flex; justify-content: space-between; gap: 10px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+.history li:empty { display: none; }
+
+/* پیام تست کلید و فهرست مدل */
+#apiStatus.is-ok, #modelStatus.is-ok { color: var(--ok); }
+#apiStatus.is-warn, #modelStatus.is-warn { color: var(--danger); }
+
+a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
+
+/* ── رنگ دلخواه و بخش‌های جمع‌شو ────────────────────── */
+
+.colors { align-items: end; }
+.colors .field.wide { grid-column: 1 / -1; }
+
+input[type="color"] {
+  width: 100%;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(5, 9, 20, 0.72);
+  cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 7px; }
+
+/* هر بلوک جمع‌شو است و پیش‌فرض بسته؛ عنوانش همان دستهٔ باز/بسته */
+details.card { padding: 0; display: block; }
+details.card > summary {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 10.5px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  border-radius: var(--radius);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::before {
+  content: "";
+  width: 6px; height: 6px; flex: none;
+  border-right: 1.7px solid currentColor;
+  border-bottom: 1.7px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+}
+details.card[open] > summary::before { transform: rotate(225deg); }
+details.card > summary:hover { color: var(--text); background: rgba(255, 255, 255, 0.03); }
+details.card[open] > summary { color: var(--text); }
+.fold-body {
+  display: flex; flex-direction: column; gap: 9px;
+  padding: 2px 12px 12px;
+}
+
+/* ── دو دکمهٔ کنش، کنار هم و با رنگ متفاوت ───────────── */
+
+.actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* مسیر زیرنویس: همان وزن دکمهٔ اصلی، ولی سبز-فیروزه‌ای تا با دوبله اشتباه نشود */
+/* سبز تیره و پُر، نه روشن و شفاف */
+.primary.subtitle {
+  background: linear-gradient(100deg, #064E3B, #115E59);
+  box-shadow: 0 8px 22px rgba(4, 47, 36, 0.5);
+  font-size: 13px;
+}
+.primary.subtitle:hover {
+  background: linear-gradient(100deg, #075E4A, #14706A);
+  box-shadow: 0 10px 26px rgba(4, 47, 36, 0.6);
+}
+.primary.subtitle.is-on {
+  background: linear-gradient(100deg, #052E24, #0B4A45);
+}
+.primary.subtitle .cc {
+  font: 800 9.5px/1 inherit;
+  letter-spacing: 0.06em;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border: 1.4px solid rgba(255, 255, 255, 0.75);
+  color: #fff;
+}
+
+.hint.pair { text-align: center; }

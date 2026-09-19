@@ -9,6 +9,7 @@
  *
  * ساخته‌شده توسط QW-AI-Code — https://github.com/QW-AI-Code
  */
+import { isQuotaError, parseRetryDelay, parseUsage } from "./usage.js";
 const ENDPOINT =
   "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 const INPUT_MIME = "audio/pcm;rate=16000";
@@ -165,9 +166,20 @@ export class LiveDubClient {
     }
 
     if (message.error?.message) {
-      this.options.onError?.({ code: "err.api", vars: { message: message.error.message } });
+      const detail = message.error.message;
+      // سهمیه تنها سیگنال قطعیِ «تمام شد» روی سیم است
+      if (isQuotaError({ code: message.error.status ?? message.error.code, message: detail })) {
+        this.options.onQuota?.(detail, parseRetryDelay(message.error, detail));
+        this.options.onError?.({ code: "err.quota", vars: { message: detail } });
+      } else {
+        this.options.onError?.({ code: "err.api", vars: { message: detail } });
+      }
       return;
     }
+
+    // هر پیام سرور می‌تواند شمارش توکن همراه داشته باشد
+    const sample = parseUsage(message.usageMetadata ?? message.usage_metadata);
+    if (sample) this.options.onUsage?.(sample);
 
     const resumption = message.sessionResumptionUpdate ?? message.session_resumption_update;
     const handle = resumption?.newHandle ?? resumption?.new_handle;

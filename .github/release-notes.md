@@ -309,3 +309,12 @@ Other things worth knowing:
 Needs your own free [Gemini API key](https://aistudio.google.com/apikey) and Chrome or Edge 116+. Full details, including the security audit table, in the [README](README.md).
 
 Bug reports with the **site** and the **scenario** are the most useful thing you can send — that is exactly how the CC bug above was found.
+
+
+<div dir="rtl">
+
+⚠️ **توجه:**  
+از بخش **«نمایش زیرنویس روی ویدیو»**، روی دکمه‌ی **«یافتن مدل‌هایی که روی کلید من کار می‌کنند»** کلیک کنید. سپس از میان گزینه‌های موجود، مدل `gemini-3.1-flash-lite-preview` را انتخاب نمایید. سهمیهٔ روزانه (Quota) این مدل بسیار دیرتر تمام می‌شود و برای استفاده مداوم پایدارتر است؛ با این حال، می‌توانید سایر مدل‌ها را نیز بررسی کنید، اما توجه داشته باشید که ممکن است سریع‌تر به سقف محدودیت مصرف برسند.
+
+</div>
+

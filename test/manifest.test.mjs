@@ -16,10 +16,16 @@ test("the download naming permission is present", () => {
   assert.ok(manifest.permissions.includes("downloads"));
   });
 
-test("host access is limited to the single AI endpoint", () => {
-  assert.deepEqual(manifest.host_permissions, ["https://generativelanguage.googleapis.com/*"]);
+test("host access is limited to the AI endpoint and YouTube", () => {
+  assert.deepEqual(manifest.host_permissions, [
+    "https://generativelanguage.googleapis.com/*",
+    "https://www.youtube.com/*"
+  ]);
   assert.equal(JSON.stringify(manifest).includes("<all_urls>"), false);
-  assert.equal("content_scripts" in manifest, false);
+  // the only content script is the YouTube on-video quick panel
+  assert.equal(manifest.content_scripts.length, 1);
+  assert.deepEqual(manifest.content_scripts[0].matches, ["https://www.youtube.com/*"]);
+  assert.deepEqual(manifest.content_scripts[0].js, ["src/overlay/yt-controls.js"]);
   assert.equal("web_accessible_resources" in manifest, false);
 });
 

@@ -7,7 +7,7 @@ import { DEFAULT_UI_LANG } from "./i18n.js";
 import { DEFAULT_THEME } from "./themes.js";
 import { DEFAULT_TEXT_MODEL } from "./translate-client.js";
 
-export const SETTINGS_VERSION = 9;
+export const SETTINGS_VERSION = 10;
 
 export const DEFAULT_SETTINGS = {
   version: SETTINGS_VERSION,
@@ -18,8 +18,8 @@ export const DEFAULT_SETTINGS = {
   translateModel: TRANSLATE_MODELS[0],
   textModel: DEFAULT_TEXT_MODEL, // مدل متنی؛ خالی یا نامعتبر ⇒ خودکار
   livePlayback: true,           // پخش زنده صدای دوبله
-  duckOriginal: true,           // کم کردن صدای اصلی هنگام صحبت گوینده
-  duckLevel: 0.12,
+  originalVolume: 1,            // ولوم ثابت صدای اصلی (۰ = قطع کامل)
+  dubVolume: 1,                 // ولوم صدای دوبله (۰ تا ۱٫۵)
   saveMp3: true,                // ذخیره خروجی صوتی
   mp3Source: "mix",             // mix = دوبله + صدای اصلی، dub = فقط دوبله
   mp3Bitrate: 128000,
@@ -56,6 +56,13 @@ export const DEFAULT_SETTINGS = {
   /** بخش‌های بازِ پاپ‌آپ؛ پیش‌فرض همه بسته‌اند */
   openSections: []
 };
+
+/** ولوم را به بازهٔ [0, max] می‌برد؛ مقدار نامعتبر ⇒ پیش‌فرض */
+export function clampVolume(value, max = 1, fallback = 1) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.max(0, Math.min(max, number));
+}
 
 export const STORAGE_KEY = "dubleParsiSettings";
 
@@ -102,6 +109,14 @@ export function migrate(stored) {
 
   // نسخهٔ ۹: روشن‌کردن موقت CC پخش‌کننده
   if (!stored.version || stored.version < 9) next.toggleCaptions = DEFAULT_SETTINGS.toggleCaptions;
+
+  // نسخهٔ ۱۰: ولوم‌های مستقل صدای اصلی و دوبله
+  if (!stored.version || stored.version < 10) {
+    next.originalVolume = DEFAULT_SETTINGS.originalVolume;
+    next.dubVolume = DEFAULT_SETTINGS.dubVolume;
+  }
+  next.originalVolume = clampVolume(next.originalVolume, 1, 1);
+  next.dubVolume = clampVolume(next.dubVolume, 1.5, 1);
 
   next.version = SETTINGS_VERSION;
 

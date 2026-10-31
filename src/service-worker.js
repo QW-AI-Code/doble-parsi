@@ -19,7 +19,7 @@
  *
  * ساخته‌شده توسط QW-AI-Code — https://github.com/QW-AI-Code
  */
-import { loadSettings, saveSettings, stageConfig } from "./defaults.js";
+import { clampVolume, loadSettings, saveSettings, stageConfig } from "./defaults.js";
 import { buildTranslatedTrack } from "./track-pipeline.js";
 import { toSrt, toVtt } from "./captions.js";
 import { buildOutputPath, timestampTag } from "./filenames.js";
@@ -27,7 +27,7 @@ import { clear as clearMemory, stats as memoryStats } from "./memory.js";
 import { forDisplay } from "./bidi.js";
 import { probeModels, testKey } from "./api-check.js";
 import * as usage from "./usage.js";
-import { setLang, digits, t } from "./i18n.js";
+import { setLang, digits, t, message as errorText } from "./i18n.js";
 
 const OFFSCREEN_PATH = "src/offscreen.html";
 const STATE_KEY = "dubleParsiState";
@@ -721,6 +721,41 @@ chrome.downloads.onDeterminingFilename?.addListener((item, suggest) => {
   suggest({ filename: wanted, conflictAction: "uniquify" });
 });
 
+/* ══════════════════════ ولوم و پنل کوچک روی ویدئو ══════════════════════ */
+
+/**
+ * ولوم صدای اصلی/دوبله را به جلسهٔ زنده می‌رساند و در صورت نیاز ذخیره می‌کند.
+ * پاپ‌آپ خودش کل تنظیمات را ذخیره می‌کند (save=false)؛ پنل روی ویدئو نه (save=true).
+ */
+async function setVolumes(update, { save }) {
+  const next = {};
+  if (update.originalVolume !== undefined) next.originalVolume = clampVolume(update.originalVolume, 1, 1);
+  if (update.dubVolume !== undefined) next.dubVolume = clampVolume(update.dubVolume, 1.5, 1);
+  if (save && Object.keys(next).length) {
+    const settings = await loadSettings();
+    await saveSettings({ ...settings, ...next });
+  }
+  if (state.phase === "live") {
+    await chrome.runtime.sendMessage({ type: "dp-off-volume", ...next }).catch(() => {});
+  }
+  return next;
+}
+
+/** وضعیت لازم برای پنل کوچک روی ویدئو */
+async function miniState() {
+  const settings = await loadSettings();
+  setLang(settings.uiLang);
+  return {
+    phase: state.phase,
+    stagePhase: state.stagePhase,
+    stageProgress: state.stageProgress,
+    uiLang: settings.uiLang,
+    originalVolume: settings.originalVolume,
+    dubVolume: settings.dubVolume,
+    error: state.error ?? state.stageError ?? null
+  };
+}
+
 /* ══════════════════════ پیام‌ها ══════════════════════ */
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
@@ -730,6 +765,48 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     startDubbing(message.settings)
       .then((data) => respond({ ok: true, state: data }))
       .catch((error) => respond({ ok: false, error: toPayload(error) }));
+    return true;
+  }
+
+  if (type === "dp-volume-set") {
+    setVolumes(message, { save: false })
+      .then(() => respond({ ok: true }))
+      .catch(() => respond({ ok: false }));
+    return true;
+  }
+
+  if (type === "dp-mini-get") {
+    miniState()
+      .then((data) => respond({ ok: true, ...data }))
+      .catch(() => respond({ ok: false }));
+    return true;
+  }
+
+  if (type === "dp-mini-volume") {
+    setVolumes(message, { save: true })
+      .then((next) => respond({ ok: true, ...next }))
+      .catch(() => respond({ ok: false }));
+    return true;
+  }
+
+  if (type === "dp-mini-start" || type === "dp-mini-stop" || type === "dp-mini-stage") {
+    const reply = (error) => miniState().then((data) => respond({
+      ok: !error,
+      ...data,
+      errorText: error ? errorText(toPayload(error)) : ""
+    }));
+    let job;
+    if (type === "dp-mini-start") {
+      // ضبط صدای تب به «فراخوانی» افزونه روی همان تب نیاز دارد (activeTab)
+      job = loadSettings().then((settings) => startDubbing(settings)).catch((error) => {
+        throw /invoked|activeTab/i.test(String(error?.message)) ? new CodedError("err.needInvoke") : error;
+      });
+    }
+    else if (type === "dp-mini-stop") job = stopDubbing();
+    else job = message.on ? startStage() : stopStage();
+    job
+      .then((result) => reply(type === "dp-mini-stage" && message.on ? result?.stageError : null))
+      .catch((error) => reply(error));
     return true;
   }
 

@@ -7,6 +7,40 @@ Every release must update this file, both READMEs, `.github/release-notes.md`,
 
 ---
 
+## [1.2.0] — 2026-10-31
+
+### Added
+
+- **Independent volume for the original audio** (`originalVolume`, 0–1) applied to playback only. The playback chain is now `sourceNode → originalGain → originalMonitorGain (user volume) → destination`, so the MP3 mix branch stays unaffected.
+- **Independent volume for the dub voice** (`dubVolume`, 0–1.5) on `dubPlaybackGain`.
+- **Live volume updates** — `dp-volume-set` (popup) and `dp-mini-volume` (on-video panel) reach the offscreen document as `dp-off-volume` and are applied without restarting the session.
+- **YouTube quick-panel button** (`src/overlay/yt-controls.js`) — a button inserted before YouTube's settings (gear) button opens a mini panel: start/stop dubbing, show/hide subtitles, original-audio volume with a mute toggle, and dub volume. Styles live in a Shadow DOM, key events are stopped from reaching YouTube's shortcuts, and a `MutationObserver` re-attaches it after YouTube re-renders the player. It works in fullscreen.
+- **Service-worker endpoints for the panel** — `dp-mini-get`, `dp-mini-start`, `dp-mini-stop`, `dp-mini-stage`, `dp-mini-volume`; errors come back already localised.
+- **Volume card in the popup** with percentage read-outs and a Mute button; it stays in sync when the volume is changed from the on-video panel.
+- Unit tests for `clampVolume`, settings migration (version 10) and the quick-panel wiring.
+
+### Changed
+
+- **Start dubbing / Show subtitles moved to the top** of the popup, directly under the status bar and above all collapsible sections.
+- **Manifest** — version 1.2.0; a `content_scripts` entry and a `host_permissions` entry for `https://www.youtube.com/*` (nothing else; still no `<all_urls>` and no `tabs`). The manifest test and `scripts/lint.mjs` were updated to describe exactly this set.
+
+### Removed
+
+- **Extra volume controls.** The *Duck original audio* switch and the *Original volume while dubbing* slider (Advanced settings) are gone, along with the automatic ducking behind them. The two volume sliders (original audio and dub voice) are the only volume controls, in the popup and in the on-video panel.
+
+### Fixed
+
+- **The release workflow now always publishes to the Releases panel.** It no longer re-runs lint and tests (the separate `build` workflow does), so a failing check cannot stop the release. It publishes with the preinstalled `gh` CLI, creates the release or refreshes it if the tag already exists, and attaches the ZIP and checksums.
+- **The quick-panel button is now unmistakable and stays next to the gear.** It uses the extension's own colour icon (embedded, no new permission) instead of a speaker glyph that looked like YouTube's volume button, has YouTube's standard 48 px button size, shows a green dot while dubbing, and is put back right beside the gear whenever YouTube re-arranges the controls.
+
+- **The original audio could not really be lowered or cut.** It was only attenuated while the dub was speaking, with `setTargetAtTime`, which approaches a target but never lands on it, and there was no way to lower it otherwise. Gain changes now use an exact linear ramp, and the user volume is a separate node so that 0 is genuine silence.
+
+### Notes
+
+- Chrome allows tab capture only after the extension was invoked on that tab (`activeTab`). If *Start dubbing* from the on-video panel reports this, press it once from the popup on that tab; afterwards the panel button works as well.
+
+---
+
 ## [1.0.1] — 2026-09-18
 
 ### Added
@@ -96,6 +130,33 @@ First public release.
 
 <div dir="rtl">
 
+## [<span dir="ltr">1.2.0</span>] — ۹ آبان ۱۴۰۵
+
+### افزوده شد
+
+- **ولوم مستقل صدای اصلی** (<span dir="ltr">`originalVolume`</span>، ۰ تا ۱) که فقط روی پخش اعمال می‌شود. زنجیرهٔ پخش حالا <span dir="ltr">`sourceNode → originalGain → originalMonitorGain (ولوم کاربر) → destination`</span> است، پس شاخهٔ میکس <span dir="ltr">MP3</span> بی‌تأثیر می‌ماند.
+- **ولوم مستقل صدای دوبله** (<span dir="ltr">`dubVolume`</span>، ۰ تا ۱٫۵) روی <span dir="ltr">`dubPlaybackGain`</span>.
+- **به‌روزرسانی زندهٔ ولوم** — <span dir="ltr">`dp-volume-set`</span> (پاپ‌آپ) و <span dir="ltr">`dp-mini-volume`</span> (پنل روی ویدئو) با نام <span dir="ltr">`dp-off-volume`</span> به سند <span dir="ltr">offscreen</span> می‌رسند و بدون شروع دوبارهٔ جلسه اعمال می‌شوند.
+- **دکمهٔ پنل سریع یوتیوب** (<span dir="ltr">`src/overlay/yt-controls.js`</span>) — دکمه‌ای که پیش از دکمهٔ تنظیمات (چرخ‌دنده) یوتیوب قرار می‌گیرد و مینی‌پنلی باز می‌کند: شروع/توقف دوبله، نمایش/پنهان‌کردن زیرنویس، ولوم صدای اصلی با کلید قطع، و ولوم دوبله. ظاهر در <span dir="ltr">Shadow DOM</span> است، رویدادهای کلید به میانبرهای یوتیوب نمی‌رسند و یک <span dir="ltr">`MutationObserver`</span> بعد از بازرسم پخش‌کننده دوباره آن را می‌چسباند. در تمام‌صفحه هم کار می‌کند.
+- **نقاط پایانی سرویس‌ورکر برای پنل** — <span dir="ltr">`dp-mini-get`</span>، <span dir="ltr">`dp-mini-start`</span>، <span dir="ltr">`dp-mini-stop`</span>، <span dir="ltr">`dp-mini-stage`</span>، <span dir="ltr">`dp-mini-volume`</span>؛ خطاها از قبل بومی‌شده برمی‌گردند.
+- **کارت ولوم صدا در پاپ‌آپ** با نمایش درصد و دکمهٔ قطع؛ اگر ولوم از پنل روی ویدئو عوض شود هم‌گام می‌ماند.
+- تست‌های واحد برای <span dir="ltr">`clampVolume`</span>، مهاجرت تنظیمات (نسخهٔ ۱۰) و اتصال پنل سریع.
+
+### تغییر کرد
+
+- **«شروع دوبله» و «نمایش زیرنویس» به بالای پاپ‌آپ رفتند** — درست زیر نوار وضعیت و بالاتر از همهٔ بخش‌های جمع‌شو.
+- **مانیفست** — نسخهٔ ۱٫۲٫۰؛ یک ورودی <span dir="ltr">`content_scripts`</span> و یک ورودی <span dir="ltr">`host_permissions`</span> برای <span dir="ltr">`https://www.youtube.com/*`</span> (چیز دیگری نه؛ همچنان نه <span dir="ltr">`<all_urls>`</span> و نه <span dir="ltr">`tabs`</span>). تست مانیفست و <span dir="ltr">`scripts/lint.mjs`</span> دقیقاً با همین مجموعه به‌روز شدند.
+
+### رفع شد
+
+- **صدای اصلی واقعاً کم یا قطع نمی‌شد.** فقط هنگام صحبت دوبله و با <span dir="ltr">`setTargetAtTime`</span> کم می‌شد، که به هدف نزدیک می‌شود ولی هرگز دقیقاً روی آن نمی‌نشیند، و در غیر آن حالت راهی برای کم‌کردنش نبود. حالا تغییر گین با رمپ خطی دقیق انجام می‌شود و ولوم کاربر گرهٔ جدا دارد، پس صفر سکوت واقعی است.
+
+### نکته
+
+- کروم ضبط صدای تب را فقط پس از فراخوانی افزونه روی همان تب (<span dir="ltr">`activeTab`</span>) اجازه می‌دهد. اگر «شروع دوبله» از پنل روی ویدئو همین را گزارش کرد، یک بار آن را از پاپ‌آپ همان تب بزن؛ بعد از آن دکمهٔ پنل هم کار می‌کند.
+
+---
+
 ## [<span dir="ltr">1.0.1</span>] — ۲۷ شهریور ۱۴۰۵
 
 ### افزوده شد
@@ -183,5 +244,6 @@ First public release.
 
 </div>
 
+[1.2.0]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.2.0
 [1.0.1]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.1
 [1.0.0]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.0

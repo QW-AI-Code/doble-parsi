@@ -3,8 +3,8 @@
   "default_locale": "fa",
   "name": "__MSG_appName__",
   "short_name": "__MSG_appShortName__",
-  "version": "1.0.1",
-  "version_name": "1.0.1",
+  "version": "1.2.0",
+  "version_name": "1.2.0",
   "minimum_chrome_version": "116",
   "description": "__MSG_appDescription__",
   "homepage_url": "https://github.com/QW-AI-Code/doble-parsi",
@@ -23,7 +23,15 @@
     "downloads"
   ],
   "host_permissions": [
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://www.youtube.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/overlay/yt-controls.js"],
+      "run_at": "document_idle"
+    }
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; style-src 'self' 'unsafe-inline'"

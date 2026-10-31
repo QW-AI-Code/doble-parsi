@@ -47,7 +47,8 @@ const referenced = new Set([
   manifest.background?.service_worker,
   manifest.action?.default_popup,
   ...Object.values(manifest.icons ?? {}),
-  ...Object.values(manifest.action?.default_icon ?? {})
+  ...Object.values(manifest.action?.default_icon ?? {}),
+  ...(manifest.content_scripts ?? []).flatMap((entry) => entry.js ?? [])
 ].filter(Boolean));
 for (const rel of referenced) {
   if (!existsSync(path.join(root, rel))) fail(`manifest references a missing file: ${rel}`);
@@ -129,7 +130,7 @@ const UNSAFE = [
   [/\.innerHTML\s*=/, "assign textContent instead of innerHTML"],
   [/document\.write\s*\(/, "document.write() is not allowed"],
   [/<script[^>]+src=["']https?:/i, "remote script tags are not allowed"],
-  [/https?:\/\/(?!generativelanguage\.googleapis\.com|github\.com|aistudio\.google\.com|www\.w3\.org|developer\.chrome\.com|chromewebstore\.google\.com|microsoftedge\.microsoft\.com|opensource\.org|img\.shields\.io|ai\.dev|mozilla\.org|nodejs\.org)[^\s"')]+/, "unexpected remote origin"]
+  [/https?:\/\/(?!generativelanguage\.googleapis\.com|github\.com|aistudio\.google\.com|www\.w3\.org|developer\.chrome\.com|www\.youtube\.com|chromewebstore\.google\.com|microsoftedge\.microsoft\.com|opensource\.org|img\.shields\.io|ai\.dev|mozilla\.org|nodejs\.org)[^\s"')]+/, "unexpected remote origin"]
 ];
 for (const rel of shippedAssets) {
   const text = await read(rel);
@@ -196,6 +197,13 @@ else {
     if (/^\s*(export|import)\s/m.test(text)) {
       fail(`${rel} is injected as a classic script, so it must not use import/export`);
     }
+  }
+}
+
+// content scripts are classic scripts too
+for (const rel of (manifest.content_scripts ?? []).flatMap((entry) => entry.js ?? [])) {
+  if (existsSync(path.join(root, rel)) && /^\s*(export|import)\s/m.test(await read(rel))) {
+    fail(`${rel} is a content script, so it must not use import/export`);
   }
 }
 

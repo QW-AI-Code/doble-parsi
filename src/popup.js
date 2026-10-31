@@ -22,8 +22,6 @@ const ui = {
   targetLang: el("targetLang"),
   tonePrompt: el("tonePrompt"),
   livePlayback: el("livePlayback"),
-  duckOriginal: el("duckOriginal"),
-  duckRow: el("duckRow"),
   saveMp3: el("saveMp3"),
   mp3Options: el("mp3Options"),
   mp3Source: el("mp3Source"),
@@ -48,7 +46,11 @@ const ui = {
   usageHistory: el("usageHistory"),
   usageRefresh: el("usageRefresh"),
   usageClear: el("usageClear"),
-  duckLevel: el("duckLevel"),
+  originalVolume: el("originalVolume"),
+  originalVolumeOut: el("originalVolumeOut"),
+  originalMute: el("originalMute"),
+  dubVolume: el("dubVolume"),
+  dubVolumeOut: el("dubVolumeOut"),
 
   // صحنهٔ روی ویدئو
   overlay: el("overlay"),
@@ -202,8 +204,8 @@ function readForm() {
     targetLang: ui.targetLang.value,
     tonePrompt: ui.tonePrompt.value.replace(/\s+/g, " ").trim().slice(0, 400),
     livePlayback: ui.livePlayback.checked,
-    duckOriginal: ui.duckOriginal.checked,
-    duckLevel: Number(ui.duckLevel.value),
+    originalVolume: Number(ui.originalVolume.value),
+    dubVolume: Number(ui.dubVolume.value),
     saveMp3: ui.saveMp3.checked,
     mp3Source: ui.mp3Source.value,
     mp3Bitrate: Number(ui.mp3Bitrate.value),
@@ -236,8 +238,9 @@ function writeForm() {
   ui.targetLang.value = settings.targetLang;
   ui.tonePrompt.value = settings.tonePrompt ?? "";
   ui.livePlayback.checked = settings.livePlayback;
-  ui.duckOriginal.checked = settings.duckOriginal;
-  ui.duckLevel.value = settings.duckLevel;
+  ui.originalVolume.value = settings.originalVolume;
+  ui.dubVolume.value = settings.dubVolume;
+  syncVolumeLabels();
   ui.saveMp3.checked = settings.saveMp3;
   ui.mp3Source.value = settings.mp3Source;
   ui.mp3Bitrate.value = String(settings.mp3Bitrate);
@@ -268,10 +271,54 @@ function writeForm() {
   syncSubPanels();
 }
 
+function syncVolumeLabels() {
+  const percent = (value) => `${digits(Math.round(Number(value) * 100))}٪`;
+  ui.originalVolumeOut.textContent = percent(ui.originalVolume.value);
+  ui.dubVolumeOut.textContent = percent(ui.dubVolume.value);
+  const muted = Number(ui.originalVolume.value) === 0;
+  ui.originalMute.classList.toggle("is-on", muted);
+  ui.originalMute.textContent = t(muted ? "vol.unmute" : "vol.mute");
+}
+
+/** ولوم را همان لحظه به جلسهٔ زنده می‌رساند */
+function pushVolumes() {
+  syncVolumeLabels();
+  chrome.runtime.sendMessage({
+    type: "dp-volume-set",
+    originalVolume: Number(ui.originalVolume.value),
+    dubVolume: Number(ui.dubVolume.value)
+  }).catch(() => {});
+}
+
+let mutedFrom = 1;
+ui.originalVolume.addEventListener("input", pushVolumes);
+ui.dubVolume.addEventListener("input", pushVolumes);
+ui.originalMute.addEventListener("click", () => {
+  const current = Number(ui.originalVolume.value);
+  if (current > 0) {
+    mutedFrom = current;
+    ui.originalVolume.value = "0";
+  } else {
+    ui.originalVolume.value = String(mutedFrom || 1);
+  }
+  pushVolumes();
+  persist();
+});
+
+// پنل روی ویدئو ولوم را عوض کرد ⇒ لغزنده‌ها هم‌گام می‌شوند
+chrome.storage.onChanged.addListener((changes, area) => {
+  const next = area === "local" ? changes.dubleParsiSettings?.newValue : null;
+  if (!next) return;
+  // وسط کشیدنِ خودِ لغزنده، تغییر قدیمی ذخیره‌شده نباید آن را عقب بکشد
+  if (document.activeElement === ui.originalVolume || document.activeElement === ui.dubVolume) return;
+  if (Number.isFinite(next.originalVolume)) ui.originalVolume.value = String(next.originalVolume);
+  if (Number.isFinite(next.dubVolume)) ui.dubVolume.value = String(next.dubVolume);
+  syncVolumeLabels();
+});
+
 function syncSubPanels() {
   ui.mp3Options.hidden = !ui.saveMp3.checked;
   ui.subtitleOptions.hidden = !ui.saveSubtitle.checked;
-  ui.duckRow.classList.toggle("locked", !ui.livePlayback.checked);
   ui.overlayOptions.hidden = !ui.overlay.checked;
   ui.siteOptions.hidden = !ui.useSiteCaptions.checked;
   ui.memoryOptions.hidden = !ui.translationMemory.checked;
@@ -323,6 +370,7 @@ function applyLanguage(lang, { rerender = true } = {}) {
   ui.year.textContent = digits(new Date().getFullYear());
   ui.toggleKey.textContent = keyVisible ? t("btn.hide") : t("btn.show");
   ui.copyTranscript.textContent = t("btn.copy");
+  syncVolumeLabels();
   ui.captionDub.dataset.placeholder = t("caption.waiting");
   syncSubPanels();
   refreshMemoryStat();

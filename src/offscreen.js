@@ -4,12 +4,16 @@
  *
  * گراف صوتی:
  *
- *   sourceNode ─┬─> originalGain ─┬─> destination
+ *   sourceNode ─┬─> originalGain ─┬─> originalMonitorGain ─> destination
  *               │                 └─> originalRecordGain ─┐
  *               └─> apiTap ─> silentSink                  │
  *                                                         ├─> recordBus ─> recordTap
  *   dubPlayer(ring buffer) ─┬─> dubRecordGain ────────────-┘
  *                           └─> dubPlaybackGain ─> destination
+ *
+ *  • ولوم کاربر (originalMonitorGain / dubPlaybackGain) فقط روی **پخش** اثر
+ *    می‌گذارد؛ فایل MP3 همچنان از شاخهٔ ضبط می‌گیرد. originalGain همیشه ۱ است.
+ *    صفر یعنی صفر واقعی: گره روی ۰ دقیق می‌نشیند.
  *
  * دو نکته‌ی مهم:
  *  • تپ ضبط دوبله **قبل** از بهره‌ی پخش زنده گرفته می‌شود. وگرنه اگر «پخش زنده»
@@ -26,11 +30,11 @@ import { buildOutputPath, timestampTag } from "./filenames.js";
 import { findLanguage } from "./languages.js";
 import { SincResampler } from "./resampler.js";
 import { Int16StreamReader, floatToInt16 } from "./pcm.js";
+import { clampVolume } from "./defaults.js";
 
 const API_INPUT_RATE = 16000;
 const SEND_CHUNK_FRAMES = 1600;      // ≈۱۰۰ میلی‌ثانیه
 const TICK_MS = 250;
-const DUCK_RELEASE_MS = 420;
 const PREBUFFER_MS = 180;            // بافر ضدلرزش پخش دوبله
 const MAX_DRAIN_MS = 12000;          // سقف انتظار برای تخلیه‌ی دنباله‌ی دوبله
 
@@ -57,7 +61,6 @@ const session = {
   sendCount: 0,
   dubTrack: null,
   sourceTrack: null,
-  duckTimer: null,
   ticker: null,
   lastDubText: "",
   lastSourceText: "",
@@ -131,7 +134,10 @@ async function startSession(request) {
   const originalGain = audioCtx.createGain();
   originalGain.gain.value = 1;
   sourceNode.connect(originalGain);
-  originalGain.connect(audioCtx.destination);
+  const originalMonitorGain = audioCtx.createGain();
+  originalMonitorGain.gain.value = clampVolume(settings.originalVolume, 1, 1);
+  originalGain.connect(originalMonitorGain);
+  originalMonitorGain.connect(audioCtx.destination);
 
   const silentSink = audioCtx.createGain();
   silentSink.gain.value = 0;
@@ -146,7 +152,7 @@ async function startSession(request) {
   });
 
   const dubPlaybackGain = audioCtx.createGain();
-  dubPlaybackGain.gain.value = settings.livePlayback ? 1 : 0;
+  dubPlaybackGain.gain.value = settings.livePlayback ? clampVolume(settings.dubVolume, 1.5, 1) : 0;
   dubPlayer.connect(dubPlaybackGain);
   dubPlaybackGain.connect(audioCtx.destination);
 
@@ -169,7 +175,7 @@ async function startSession(request) {
     if (wantsMix) {
       originalRecordGain = audioCtx.createGain();
       originalRecordGain.gain.value = MIX_ORIGINAL_GAIN;
-      originalGain.connect(originalRecordGain); // بعد از ducking، پس میکس متعادل است
+      originalGain.connect(originalRecordGain); // ولوم پخش روی میکس اثر ندارد
       originalRecordGain.connect(recordBus);
     }
 
@@ -206,7 +212,7 @@ async function startSession(request) {
     stream,
     audioCtx,
     nodes: {
-      sourceNode, originalGain, originalRecordGain, dubPlayer, dubPlaybackGain,
+      sourceNode, originalGain, originalMonitorGain, originalRecordGain, dubPlayer, dubPlaybackGain,
       dubRecordGain, recordBus, silentSink, apiTap, recordTap
     },
     recorder,
@@ -308,7 +314,6 @@ function handlePlayerMessage(message) {
     session.droppedFrames = message.droppedFrames ?? session.droppedFrames;
     if (message.active !== session.dubActive) {
       session.dubActive = Boolean(message.active);
-      applyDuck(session.dubActive);
     }
     return;
   }
@@ -349,30 +354,34 @@ function resetDubStream() {
   session.dubResampler?.reset();
 }
 
-function applyDuck(speaking) {
-  if (!session.settings?.duckOriginal || !session.settings?.livePlayback) return;
+/**
+ * گین را در زمانی کوتاه و **دقیقاً** به هدف می‌رساند.
+ * setTargetAtTime فقط به هدف نزدیک می‌شود و هرگز به آن نمی‌رسد؛ برای «قطع
+ * کامل» رمپ خطی لازم است که روی مقدار نهایی بنشیند.
+ */
+function rampGain(param, target, seconds) {
   const ctx = session.audioCtx;
-  const gain = session.nodes.originalGain?.gain;
-  if (!ctx || !gain) return;
+  if (!ctx || !param) return;
+  const now = ctx.currentTime;
+  param.cancelScheduledValues(now);
+  param.setValueAtTime(param.value, now);
+  param.linearRampToValueAtTime(target, now + seconds);
+}
 
-  if (session.duckTimer) {
-    clearTimeout(session.duckTimer);
-    session.duckTimer = null;
+/** ولوم زندهٔ صدای اصلی و دوبله (از پاپ‌آپ یا دکمهٔ روی ویدئو) */
+function applyVolumes(update = {}) {
+  if (!session.audioCtx || !session.settings) return false;
+  if (update.originalVolume !== undefined) {
+    session.settings.originalVolume = clampVolume(update.originalVolume, 1, 1);
+    rampGain(session.nodes.originalMonitorGain?.gain, session.settings.originalVolume, 0.05);
   }
-
-  if (speaking) {
-    const level = Math.max(0, Math.min(1, session.settings.duckLevel ?? 0.12));
-    gain.cancelScheduledValues(ctx.currentTime);
-    gain.setTargetAtTime(level, ctx.currentTime, 0.05);
-    return;
+  if (update.dubVolume !== undefined) {
+    session.settings.dubVolume = clampVolume(update.dubVolume, 1.5, 1);
+    if (session.settings.livePlayback) {
+      rampGain(session.nodes.dubPlaybackGain?.gain, session.settings.dubVolume, 0.05);
+    }
   }
-
-  session.duckTimer = setTimeout(() => {
-    session.duckTimer = null;
-    const context = session.audioCtx;
-    if (!context || session.dubActive) return;
-    session.nodes.originalGain?.gain.setTargetAtTime(1, context.currentTime, 0.12);
-  }, DUCK_RELEASE_MS);
+  return true;
 }
 
 /** منتظر می‌ماند تا دنباله‌ی صدای دوبله کامل پخش (و ضبط) شود */
@@ -455,9 +464,6 @@ async function stopSession(request = {}) {
   }
 
   session.recording = false;
-
-  if (session.duckTimer) clearTimeout(session.duckTimer);
-  session.duckTimer = null;
 
   try {
     session.nodes.recordTap?.port.postMessage({ type: "close" });
@@ -563,6 +569,10 @@ chrome.runtime.onMessage.addListener((message, _sender, respond) => {
       .then((data) => respond({ ok: true, data }))
       .catch((error) => respond({ ok: false, error: toPayload(error, "err.stopFailed") }));
     return true;
+  }
+  if (message?.type === "dp-off-volume") {
+    respond({ ok: applyVolumes(message) });
+    return false;
   }
   if (message?.type === "dp-off-ping") {
     respond({ ok: true, active: session.active });

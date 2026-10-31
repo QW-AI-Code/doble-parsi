@@ -41,6 +41,39 @@
 
       <p class="alert" id="alert" hidden></p>
 
+      <div class="actions">
+        <button class="primary" id="action" type="button">
+          <span class="rec"></span>
+          <span id="actionLabel" data-i18n="btn.start">شروع دوبله</span>
+        </button>
+
+        <!-- دو مسیر مستقل: هر کدام تنها، یا هر دو با هم -->
+        <button class="primary subtitle" id="stageAction" type="button">
+          <span class="cc" aria-hidden="true">CC</span>
+          <span id="stageActionLabel" data-i18n="btn.stageStart">نمایش زیرنویس روی ویدئو</span>
+        </button>
+
+        <p class="hint" id="stageStatus" data-i18n="stage.hint">یک ویدئو باز کن و بزن.</p>
+        <button class="ghost wide" id="stageSave" type="button" data-i18n="btn.stageSave" hidden>ذخیرهٔ این زیرنویس</button>
+        <p class="hint pair" data-i18n="hint.bothPaths">این دو مستقل‌اند: هر کدام را تنها یا هر دو را با هم می‌توانی روشن کنی.</p>
+      </div>
+
+      <section class="card volume" id="volumeCard">
+        <h2 class="card-title" data-i18n="vol.title">ولوم صدا</h2>
+        <label class="field vol-field">
+          <span class="label"><span data-i18n="vol.original">صدای اصلی ویدئو</span> <output id="originalVolumeOut" class="vol-out">۱۰۰٪</output></span>
+          <span class="vol-row">
+            <input id="originalVolume" type="range" min="0" max="1" step="0.01" />
+            <button class="ghost vol-mute" id="originalMute" type="button" data-i18n="vol.mute">قطع</button>
+          </span>
+        </label>
+        <label class="field vol-field">
+          <span class="label"><span data-i18n="vol.dub">صدای دوبله</span> <output id="dubVolumeOut" class="vol-out">۱۰۰٪</output></span>
+          <input id="dubVolume" type="range" min="0" max="1.5" step="0.01" />
+        </label>
+        <p class="hint" data-i18n="vol.hint">صفر یعنی قطع کامل.</p>
+      </section>
+
       <details class="card fold" data-section="keys">
         <summary data-i18n="section.keys">کلید API و زبان</summary>
         <div class="fold-body">
@@ -85,17 +118,6 @@
           <span class="toggle">
             <span class="pill" aria-hidden="true"></span>
             <input type="checkbox" id="livePlayback" class="switch" />
-          </span>
-        </label>
-
-        <label class="switch-row" id="duckRow">
-          <span class="row-text">
-            <strong data-i18n="sw.duck">کم‌کردن صدای اصلی</strong>
-            <em data-i18n="sw.duck.desc">وقتی گوینده حرف می‌زند، صدای اصلی پایین می‌آید</em>
-          </span>
-          <span class="toggle">
-            <span class="pill" aria-hidden="true"></span>
-            <input type="checkbox" id="duckOriginal" class="switch" />
           </span>
         </label>
 
@@ -383,23 +405,6 @@
         </div>
       </section>
 
-      <div class="actions">
-        <button class="primary" id="action" type="button">
-          <span class="rec"></span>
-          <span id="actionLabel" data-i18n="btn.start">شروع دوبله</span>
-        </button>
-
-        <!-- دو مسیر مستقل: هر کدام تنها، یا هر دو با هم -->
-        <button class="primary subtitle" id="stageAction" type="button">
-          <span class="cc" aria-hidden="true">CC</span>
-          <span id="stageActionLabel" data-i18n="btn.stageStart">نمایش زیرنویس روی ویدئو</span>
-        </button>
-
-        <p class="hint" id="stageStatus" data-i18n="stage.hint">یک ویدئو باز کن و بزن.</p>
-        <button class="ghost wide" id="stageSave" type="button" data-i18n="btn.stageSave" hidden>ذخیرهٔ این زیرنویس</button>
-        <p class="hint pair" data-i18n="hint.bothPaths">این دو مستقل‌اند: هر کدام را تنها یا هر دو را با هم می‌توانی روشن کنی.</p>
-      </div>
-
       <details class="advanced" data-section="advanced">
         <summary data-i18n="section.advanced">تنظیمات پیشرفته</summary>
 
@@ -420,10 +425,6 @@
             <span class="label" data-i18n="field.translateModel">مدل ترجمه</span>
             <input id="translateModel" type="text" spellcheck="false" dir="ltr" />
             <span class="hint" data-i18n="hint.model">اگر مدل پیش‌فرض جواب نداد، مدل Live دیگری را امتحان کن.</span>
-          </label>
-          <label class="field">
-            <span class="label" data-i18n="field.duckLevel">سطح صدای اصلی هنگام دوبله</span>
-            <input id="duckLevel" type="range" min="0" max="0.6" step="0.02" />
           </label>
         </div>
       </details>

@@ -663,3 +663,12 @@ details.card[open] > summary { color: var(--text); }
 }
 
 .hint.pair { text-align: center; }
+
+/* ── ولوم صدا ───────────────────────────────────────────── */
+.card.volume { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
+.vol-field .label { display: flex; justify-content: space-between; align-items: center; }
+.vol-out { font-variant-numeric: tabular-nums; opacity: 0.8; }
+.vol-row { display: flex; align-items: center; gap: 8px; }
+.vol-row input[type="range"] { flex: 1; }
+.vol-mute { padding: 4px 10px; font-size: 12px; }
+.vol-mute.is-on { background: rgba(239, 68, 68, 0.22); }

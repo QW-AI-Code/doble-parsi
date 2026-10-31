@@ -1,4 +1,4 @@
-## Doble Parsi v1.0.1
+## Doble Parsi v1.2.0
 
 **Dub the audio of any browser tab live with AI, then keep the MP3 and the SRT/VTT subtitles named exactly after the video.**
 
@@ -6,12 +6,12 @@
 
 | File | What it is |
 | --- | --- |
-| `doble-parsi-1.0.1-chrome.zip` | Main extension package. Unzip it, then load it in Chrome/Edge via **Load unpacked**. |
-| `doble-parsi-1.0.1.crx` | Signed package (optional). |
+| `doble-parsi-1.2.0-chrome.zip` | Main extension package. Unzip it, then load it in Chrome/Edge via **Load unpacked**. |
+| `doble-parsi-1.2.0.crx` | Signed package (optional). |
 
 ### Install in one minute
 
-1. Download and unzip `doble-parsi-1.0.1-chrome.zip`.
+1. Download and unzip `doble-parsi-1.2.0-chrome.zip`.
 2. Open `chrome://extensions` (or `edge://extensions`).
 3. Turn on **Developer mode**.
 4. Click **Load unpacked** and pick the unzipped folder.
@@ -20,6 +20,10 @@
 Requires Chrome or Edge 116+.
 
 ### What's new
+
+- **v1.2.0 — the original audio can be silenced completely.** A dedicated *Original video audio* volume (0–100 %, true silence at 0, plus a Mute button) now controls playback. A separate *Dub voice* volume (0–150 %) lifts a quiet dub.
+- **v1.2.0 — main buttons moved to the top.** *Start dubbing* and *Show subtitles* sit right under the status bar, with a Volume card below them. No scrolling.
+- **v1.2.0 — quick-panel button on the YouTube player.** A new button next to YouTube's gear opens a mini panel: Start/Stop dubbing, Show/Hide subtitles, original and dub volume. It needs one content script limited to `https://www.youtube.com/*`; no other permission was added.
 
 - **Subtitles on the video itself** — the translation sits on the picture, in a Shadow DOM, so the site's CSS cannot reach it. It follows resizing, scrolling and fullscreen with observers, not a timer.
 - **One line, draggable** — only the translation is shown; grab the handle and move it, it snaps to nine anchor points and remembers the spot.
@@ -57,7 +61,7 @@ Requires Chrome or Edge 116+.
 | Remote code | None. No CDN, no remote script, no `eval`. CSP is `script-src 'self' 'wasm-unsafe-eval'`. |
 | Network destinations | Exactly one: the AI live endpoint declared in `host_permissions`. No analytics or telemetry. |
 | API key handling | Stored locally with `chrome.storage.local`, sent only to that endpoint over TLS, never synced or logged. |
-| Host access | No `<all_urls>`, no `tabs` permission, no content scripts. Page access via `activeTab` only, after you click the icon. |
+| Host access | No `<all_urls>`, no `tabs` permission. Page access via `activeTab` after you click the icon, plus one content script (the quick-panel button) limited to `https://www.youtube.com/*`. |
 | Injected script | Two, on demand only: a metadata reader that returns the title and caption list, and the subtitle stage inside its own closed Shadow DOM. Neither writes to the page. |
 | File writes | Only through `chrome.downloads`. Paths are sanitised twice and `..` segments dropped, so writes stay inside the downloads folder. |
 | Bundled encoder | A pre-built WebAssembly MP3 encoder under MPL-2.0, in a worker with no network access, receiving PCM only. |
@@ -71,7 +75,7 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 <div dir="rtl">
 
-## دوبله پارسی نسخهٔ <span dir="ltr">v1.0.1</span>
+## دوبله پارسی نسخهٔ <span dir="ltr">v1.2.0</span>
 
 **صدای هر تب مرورگر را زنده و با هوش مصنوعی دوبله کن، بعد فایل <span dir="ltr">MP3</span> و زیرنویس <span dir="ltr">SRT/VTT</span> را دقیقاً هم‌نام همان ویدئو تحویل بگیر.**
 
@@ -79,12 +83,12 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 | فایل | چیست |
 | --- | --- |
-| <span dir="ltr">`doble-parsi-1.0.1-chrome.zip`</span> | فایل اصلی اکستنشن. آن را دانلود و از حالت فشرده خارج کن، سپس در کروم با <span dir="ltr">**Load unpacked**</span> بارگذاری کن. |
-| <span dir="ltr">`doble-parsi-1.0.1.crx`</span> | بستهٔ امضاشده (اختیاری). |
+| <span dir="ltr">`doble-parsi-1.2.0-chrome.zip`</span> | فایل اصلی اکستنشن. آن را دانلود و از حالت فشرده خارج کن، سپس در کروم با <span dir="ltr">**Load unpacked**</span> بارگذاری کن. |
+| <span dir="ltr">`doble-parsi-1.2.0.crx`</span> | بستهٔ امضاشده (اختیاری). |
 
 ### نصب در یک دقیقه
 
-۱. فایل <span dir="ltr">`doble-parsi-1.0.1-chrome.zip`</span> را دانلود و از حالت فشرده خارج کن.
+۱. فایل <span dir="ltr">`doble-parsi-1.2.0-chrome.zip`</span> را دانلود و از حالت فشرده خارج کن.
 ۲. در مرورگر <span dir="ltr">`chrome://extensions`</span> (یا <span dir="ltr">`edge://extensions`</span>) را باز کن.
 ۳. گزینهٔ <span dir="ltr">**Developer mode**</span> را روشن کن.
 ۴. روی <span dir="ltr">**Load unpacked**</span> بزن و پوشهٔ خارج‌شده را انتخاب کن.
@@ -94,6 +98,9 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 ### تازه‌ها
 
+- **<span dir="ltr">v1.2.0</span> — صدای اصلی کامل قطع می‌شود.** ولوم مستقل «صدای اصلی ویدئو» (۰ تا ۱۰۰٪، صفر = سکوت واقعی، به‌علاوهٔ دکمهٔ قطع) روی پخش اعمال می‌شود. ولوم جدای «صدای دوبله» (۰ تا ۱۵۰٪) دوبلهٔ کم‌صدا را بلند می‌کند.
+- **<span dir="ltr">v1.2.0</span> — دکمه‌های اصلی بالای افزونه.** «شروع دوبله» و «نمایش زیرنویس» زیر نوار وضعیت نشسته‌اند و کارت ولوم زیر آن‌هاست؛ بدون اسکرول.
+- **<span dir="ltr">v1.2.0</span> — دکمهٔ میانبر روی پخش‌کنندهٔ یوتیوب.** دکمهٔ تازه‌ای کنار چرخ‌دندهٔ یوتیوب مینی‌پنلی باز می‌کند: شروع/توقف دوبله، نمایش/پنهان‌کردن زیرنویس، ولوم صدای اصلی و دوبله. به یک <span dir="ltr">content script</span> محدود به <span dir="ltr">`https://www.youtube.com/*`</span> نیاز دارد؛ دسترسی دیگری اضافه نشد.
 - **زیرنویس روی خودِ ویدئو** — ترجمه روی تصویر می‌نشیند، داخل یک <span dir="ltr">Shadow DOM</span>، پس <span dir="ltr">CSS</span> سایت به آن نمی‌رسد. تغییر اندازه، اسکرول و تمام‌صفحه را با <span dir="ltr">observer</span> دنبال می‌کند نه با تایمر.
 - **یک خط، قابل جابه‌جایی** — فقط ترجمه نشان داده می‌شود؛ دستگیره را بگیر و بکش، به ۹ لنگر می‌چسبد و جایش را یادش می‌ماند.
 - **۶ قالب** — شفق، نئون، سینما، روبان، تخته و کاغذ. از تراشه‌های تصویری یکی را بزن؛ همان لحظه و وسط جلسه عوض می‌شود.
@@ -130,7 +137,7 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 | کد راه دور | ندارد. نه <span dir="ltr">CDN</span>، نه اسکریپت بیرونی، نه <span dir="ltr">`eval`</span>. سیاست امنیتی <span dir="ltr">`script-src 'self' 'wasm-unsafe-eval'`</span> است. |
 | مقصدهای شبکه | فقط یکی: همان سرویس هوش مصنوعی که در <span dir="ltr">`host_permissions`</span> اعلام شده. نه آنالیتیکس، نه تلمتری. |
 | نگهداری کلید <span dir="ltr">API</span> | محلی در <span dir="ltr">`chrome.storage.local`</span>، فقط روی <span dir="ltr">TLS</span> به همان سرویس فرستاده می‌شود، بدون همگام‌سازی و بدون لاگ. |
-| دسترسی به سایت‌ها | نه <span dir="ltr">`<all_urls>`</span>، نه دسترسی <span dir="ltr">`tabs`</span>، نه <span dir="ltr">content script</span>. دسترسی به صفحه فقط با <span dir="ltr">`activeTab`</span> و بعد از کلیک تو. |
+| دسترسی به سایت‌ها | نه <span dir="ltr">`<all_urls>`</span>، نه دسترسی <span dir="ltr">`tabs`</span>. دسترسی به صفحه با <span dir="ltr">`activeTab`</span> و بعد از کلیک تو، به‌علاوهٔ یک <span dir="ltr">content script</span> (دکمهٔ پنل سریع) محدود به <span dir="ltr">`https://www.youtube.com/*`</span>. |
 | کد تزریق‌شده | دو مورد، فقط در لحظهٔ نیاز: خوانندهٔ متادیتا که عنوان و فهرست زیرنویس را برمی‌گرداند، و صحنهٔ زیرنویس داخل <span dir="ltr">Shadow DOM</span> بستهٔ خودش. هیچ‌کدام در صفحه نمی‌نویسند. |
 | نوشتن فایل | فقط از راه <span dir="ltr">`chrome.downloads`</span>. مسیرها دو بار پاک‌سازی می‌شوند و بخش‌های <span dir="ltr">`..`</span> حذف می‌شوند، پس نوشتن داخل پوشهٔ دانلود می‌ماند. |
 | انکودر همراه بسته | انکودر <span dir="ltr">MP3</span> از پیش ساخته‌شده با مجوز <span dir="ltr">MPL-2.0</span>، در ورکر بدون دسترسی شبکه، که فقط <span dir="ltr">PCM</span> می‌گیرد. |
@@ -248,7 +255,7 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 ## نصب، یک دقیقه
 
-۱. فایل `doble-parsi-1.0.1-chrome.zip` را از همین ریلیز بگیر و از حالت فشرده خارج کن.
+۱. فایل `doble-parsi-1.2.0-chrome.zip` را از همین ریلیز بگیر و از حالت فشرده خارج کن.
 ۲. در کروم یا اِج برو به `chrome://extensions`.
 ۳. **Developer mode** را روشن کن.
 ۴. **Load unpacked** را بزن و پوشهٔ خارج‌شده را انتخاب کن.
@@ -263,7 +270,7 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 این را عمداً می‌نویسم، چون افزونه‌های زیرنویس معمولاً دسترسی‌های عجیبی می‌خواهند:
 
-- **نه دسترسی به «همهٔ سایت‌ها»** — هیچ `content_scripts` در مانیفست ثبت نشده. کد فقط بعد از کلیک تو و از راه `activeTab` وارد همان یک تب می‌شود.
+- **نه دسترسی به «همهٔ سایت‌ها»** — تنها `content_scripts` مانیفست (دکمهٔ پنل سریع) فقط روی `https://www.youtube.com/*` است. بقیهٔ کد فقط بعد از کلیک تو و از راه `activeTab` وارد همان یک تب می‌شود.
 - **یک مقصد شبکه، تمام** — فقط سرویس جِمینای. نه آنالیتیکس، نه تلمتری، نه سرور واسط.
 - **کلید API روی همین مرورگر می‌ماند** — همگام‌سازی نمی‌شود، لاگ نمی‌شود، جایی جز گوگل نمی‌رود.
 - **بدون هیچ وابستگی اجرایی** — نه CDN، نه اسکریپت بیرونی، نه `eval`.
@@ -290,7 +297,7 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 ## English — short version
 
-**Doble Parsi 1.0.1** turns YouTube's own caption track into a subtitle you actually control.
+**Doble Parsi 1.2.0** turns YouTube's own caption track into a subtitle you actually control.
 
 YouTube's auto-translate gives you one flavour of machine translation and no say in it. This extension takes the video's real timed caption track — exact timecodes, no guessing from audio — and translates it with **a tone you write yourself**: "casual and friendly", "formal", "keep technical terms in English", whatever you type in one box.
 
@@ -304,7 +311,7 @@ Other things worth knowing:
 - **Built for the free tier** — a key test that tells you *why* it failed, a probe that lists only the models your key can actually call (cheapest first), a token and quota monitor with your daily budget, and 80-line batches so one video costs 8 requests instead of 15. If the quota runs out mid-way, what was translated is kept and you are told how many lines remain.
 - **No captions at all?** The audio path takes over and writes live subtitles on the picture, with the dub voice off. Dubbing is a separate button — run either alone or both together.
 - **Export** to SRT or VTT with the video's real timecodes.
-- **Permissions:** no `content_scripts`, no `<all_urls>`, one network destination, the key never leaves your browser except to Google.
+- **Permissions:** one YouTube-only content script, no `<all_urls>`, one network destination, the key never leaves your browser except to Google.
 
 Needs your own free [Gemini API key](https://aistudio.google.com/apikey) and Chrome or Edge 116+. Full details, including the security audit table, in the [README](README.md).
 

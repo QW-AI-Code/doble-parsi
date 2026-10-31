@@ -4,7 +4,7 @@
 
 # Doble Parsi — دوبله پارسی
 
-[![version](https://img.shields.io/badge/version-1.0.1-3b6dff)](https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.1)
+[![version](https://img.shields.io/badge/version-1.2.0-3b6dff)](https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.2.0)
 [![license](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 [![build](https://github.com/QW-AI-Code/doble-parsi/actions/workflows/build.yml/badge.svg)](https://github.com/QW-AI-Code/doble-parsi/actions/workflows/build.yml)
 [![manifest](https://img.shields.io/badge/manifest-v3-8b5cf6)](manifest.json)
@@ -17,9 +17,18 @@
 
 ---
 
-## What's new — v1.0.1
+## What's new — v1.2.0
 
-- **Subtitles on the video itself** — the translation sits on the picture, not only inside the popup. The stage lives in a Shadow DOM with its own stylesheet, so the site's CSS cannot reach it and it needs no `!important` anywhere. It follows the player through resizing, scrolling and fullscreen with observers instead of a polling timer, and it is injected on demand through `activeTab` — the manifest still declares no `content_scripts`.
+- **The original audio can now be silenced completely** — the root cause is fixed. The original track used to be lowered only briefly while the dub was speaking (and only towards a value it never exactly reached), so it stayed audible and drowned the dub. There is now a dedicated **Original video audio** volume (0–100 %) applied to playback with an exact ramp: **0 is true silence**, plus a one-tap **Mute** button. The MP3 mix is deliberately not affected by this playback volume.
+- **A separate Dub voice volume** (0–150 %), so a quiet dub can be boosted without touching the original. Both volumes apply instantly while dubbing and are remembered.
+- **Start dubbing and Show subtitles are at the top** — the two main buttons now sit right under the status bar, above every collapsible section, so there is no scrolling to reach them. A **Volume** card with both sliders sits directly below them.
+- **A quick-panel button on the YouTube player** — a new button with the extension icon right beside YouTube's gear (settings) button opens a mini panel with: Start / Stop dubbing, Show / Hide subtitles, Original audio volume (with Mute) and Dub volume. You no longer have to reopen the extension from the top of the page every time. It works in fullscreen, survives YouTube's page navigation, and its styles live in a Shadow DOM.
+- **Permissions, stated plainly** — the quick-panel button needs one content script limited to `https://www.youtube.com/*` (also listed in `host_permissions`). Nothing else changed: still no `<all_urls>`, no `tabs` permission and the same single AI endpoint. Chrome only allows tab capture after the extension was invoked on that tab, so if the on-video button asks for it, press **Start dubbing** from the popup once on that tab.
+- Settings version 10 (the two volumes) and new unit tests for volume clamping, migration and the quick-panel wiring.
+
+## Earlier highlights — v1.0.1
+
+- **Subtitles on the video itself** — the translation sits on the picture, not only inside the popup. The stage lives in a Shadow DOM with its own stylesheet, so the site's CSS cannot reach it and it needs no `!important` anywhere. It follows the player through resizing, scrolling and fullscreen with observers instead of a polling timer, and it is injected on demand through `activeTab` — the only content script is the YouTube quick-panel button (added in v1.2.0).
 - **One line, right where you want it** — only the translation is shown, so the picture stays free. Hover it, grab the handle and drag: it snaps to nine anchor points and remembers the spot.
 - **Six subtitle themes** — Aurora (frosted glass with a slow colour drift), Neon, Cinema (a crisp stroke drawn with `paint-order`), Ribbon, Slate, and Paper, the one light theme. Pick one from the visual chips in the popup and the video updates instantly, mid-session.
 - **Right-to-left done properly** — a Persian line is laid out right-to-left, and Latin runs inside it (`Windows 11`, `Node.js`) are wrapped in Unicode isolates, so a mixed sentence no longer scrambles at the boundaries. The isolates never reach the exported subtitle file.
@@ -55,7 +64,6 @@
 - **Voice reproduction** — the translation model imitates the original speaker; a voice setting would be ignored by the service, so it is not offered.
 - **31 target languages** — a single dropdown, labelled in the interface language you picked.
 - **Live dub playback** — the dub plays over the page audio through a continuous ring buffer with a 180 ms anti-jitter prebuffer and 2 ms fades, so chunk borders are silent.
-- **Automatic ducking** — the original track drops to your chosen level while the dub speaks and eases back up 420 ms after it stops.
 - **MP3 recording** — encoded off the main thread, mono, at the audio context's own rate; the recording tap sits before the playback gain, so muting live playback does not produce a silent file.
 - **Clean recording levels** — a soft limiter starting at −1 dBFS and an explicit 16-bit conversion keep the encoder from clipping or misreading the buffer.
 - **Subtitle builder** — cues close on sentence ends, on 140 characters, on 7 seconds, or after 900 ms of silence; overlaps are repaired and short cues get a 700 ms floor.
@@ -75,13 +83,13 @@
 - **Interruption handling** — when the model cuts its turn short, the byte carry and resampler state reset so the next sample cannot land on a wrong offset.
 - **High-quality resampling** — 32-tap, 512-subphase windowed sinc in both directions, with continuous state across chunks.
 - **Honest error reporting** — every failure and warning (silent recording, clipping, dropped audio, empty subtitles, API errors) is shown in your language instead of being swallowed.
-- **Advanced controls** — override the model id, set the ducking level, or turn off video-based naming.
+- **Advanced controls** — override the model id, or turn off video-based naming.
 
 ## Install
 
 ### Easy installation in Chrome / Edge (Recommended)
 
-1. **Download the extension:** Download `doble-parsi-1.0.1-chrome.zip` from the top of the [Releases page](https://github.com/QW-AI-Code/doble-parsi/releases).
+1. **Download the extension:** Download `doble-parsi-1.2.0-chrome.zip` from the top of the [Releases page](https://github.com/QW-AI-Code/doble-parsi/releases).
 2. **Unzip the file:** Right-click the downloaded zip file and select **Extract All...** (or Unzip). You will get a regular folder containing the extension files (such as `manifest.json`, `src/`, etc.).
 3. **Open Extensions page in Chrome:** In your Chrome browser address bar, type `chrome://extensions` and press Enter. (For Microsoft Edge, go to `edge://extensions`).
 4. **Enable Developer mode:** Look at the top-right corner of the page and turn ON the toggle switch for **Developer mode**.
@@ -99,7 +107,7 @@ npm install
 npm run build
 ```
 
-`npm run build` writes the loadable folder to `dist/doble-parsi/` and the packaged archive to `dist/doble-parsi-1.0.1-chrome.zip`. Load the folder with **Load unpacked**.
+`npm run build` writes the loadable folder to `dist/doble-parsi/` and the packaged archive to `dist/doble-parsi-1.2.0-chrome.zip`. Load the folder with **Load unpacked**.
 
 ## How to use
 
@@ -107,7 +115,7 @@ npm run build
 2. **Open your video or audio tab:** Go to YouTube, Aparat, Coursera, a podcast, an online meeting, or any tab you want translated and hit play.
 3. **Open Doble Parsi:** Click the extension icon in your browser toolbar, paste your API key in the top box (it saves automatically), and select your desired dubbing language (Persian is selected by default).
 4. **Choose what you want:** Turn on live playback to hear the dub in real time, enable MP3 export if you want the audio file saved, and enable subtitles (SRT / VTT) if you want text transcripts timed to the video.
-5. **Click "Start dubbing":** The status turns blue (*Dubbing*), a `REC` badge appears on the extension icon, and you will hear the real-time dub playing over the original video with automatic volume ducking.
+5. **Click "Start dubbing":** The status turns blue (*Dubbing*), a `REC` badge appears on the extension icon, and you will hear the real-time dub playing over the original video. Use the two volume sliders (original / dub) to balance them.
 6. **Click "Stop and save":** When you're done watching, click the button again. The extension cleanly wraps up the session, generates the audio and subtitle files, and saves them directly to your computer.
 7. **Find your downloads:** Everything is saved neatly in your Downloads folder inside a dedicated folder named after the video:
 
@@ -129,7 +137,6 @@ Tip: keep the dubbed tab in the foreground. Chrome throttles background tabs, wh
 | **Gemini API key** | Your key for the live translation service. Stored locally with `chrome.storage.local`, never synced, never sent anywhere except the AI endpoint. |
 | **Dubbing language** | The language you want to hear and read. 31 options, Persian by default. |
 | **Live dub playback** | Plays the dub through your speakers while you watch. Turn it off to record silently. |
-| **Duck original audio** | Lowers the original track while the dub speaks. Only active when live playback is on. |
 | **Save MP3 file** | Writes an MP3 of the session when you stop. |
 | **File content** | *Dub + original (mix)* keeps both, *Dub only* keeps just the dubbed voice. |
 | **Quality** | MP3 bitrate: 96, 128 (default) or 192 kbps. |
@@ -139,7 +146,6 @@ Tip: keep the dubbed tab in the foreground. Chrome throttles background tabs, wh
 | **Also save source-language subtitles** | Adds a second `.original.srt` / `.vtt` with the original speech. |
 | **Match the original video name** | On: files carry the video's own name. Off: a timestamp is appended. |
 | **Translation model** | The live model id. Change it only if the default stops working. |
-| **Original volume while dubbing** | The ducking floor, 0 to 0.6 (default 0.12). |
 | **فا / EN** | Interface language and direction. Persian is the default. |
 
 ## Permissions
@@ -152,9 +158,10 @@ Tip: keep the dubbed tab in the foreground. Chrome throttles background tabs, wh
 | `scripting` | Runs one small function in that tab to read the real video title (media session, `og:title`, player heading). It reads metadata and changes nothing. |
 | `downloads` | Saves the MP3 and subtitle files. |
 | `storage` | Keeps your settings in `local` and the live session snapshot in `session`. |
-| `https://generativelanguage.googleapis.com/*` | The only remote host: the live translation endpoint. |
+| `https://generativelanguage.googleapis.com/*` | The only remote host the extension talks to: the live translation endpoint. |
+| `https://www.youtube.com/*` | Hosts the one content script that adds the quick-panel button next to YouTube's gear. It only sends messages to the extension and makes no network requests. |
 
-There is no `tabs` permission, no `<all_urls>`, no content script and no web-accessible resource.
+There is no `tabs` permission, no `<all_urls>` and no web-accessible resource. The single content script is limited to `https://www.youtube.com/*`.
 
 ## Security audit
 
@@ -163,7 +170,7 @@ There is no `tabs` permission, no `<all_urls>`, no content script and no web-acc
 | Remote code | None. No CDN, no remote script, no `eval`, no `new Function`. CSP is `script-src 'self' 'wasm-unsafe-eval'`. |
 | Network destinations | Exactly one: the AI live endpoint declared in `host_permissions`. No analytics, no telemetry, no error reporting. |
 | API key handling | Stored in `chrome.storage.local` on this device, hidden behind a password field, sent only to the AI endpoint over TLS. Never synced, never logged. |
-| Host access | No `<all_urls>`. Page access is limited to `activeTab`, granted only when you click the extension. |
+| Host access | No `<all_urls>`. Page access is `activeTab` (granted when you click the extension) plus the one YouTube quick-panel content script on `https://www.youtube.com/*`. |
 | Injected script | Two, both on demand and only after you click the icon: a reader that returns the video title and its caption list, and the subtitle stage, which renders inside its own Shadow DOM and touches no page node other than its own host. The reader may switch the player's own CC button on and back off, because YouTube builds its caption list only then; it changes nothing else and restores what it changed. |
 | File writes | Only through `chrome.downloads`. Paths are sanitised twice, control and illegal characters removed, `..` segments dropped, so writes cannot leave the downloads folder. |
 | Bundled encoder | A pre-built WebAssembly MP3 encoder under MPL-2.0, running in a dedicated worker with no network access. It only ever receives PCM samples. Its licence text ships in `src/vendor/`. |
@@ -226,11 +233,11 @@ docs/screenshots/        images used by both READMEs
 ## Publish your own copy
 
 ```bash
-git init && git add . && git commit -m "chore: release 1.0.1"
+git init && git add . && git commit -m "chore: release 1.2.0"
 git branch -M main
 git remote add origin https://github.com/<user>/doble-parsi.git
 git push -u origin main
-git tag v1.0.1 && git push origin v1.0.1
+git tag v1.2.0 && git push origin v1.2.0
 ```
 
 Pushing the tag runs `release.yml`, which builds the extension, writes `checksums.txt`, adds a `.crx` if a signing key is stored in secrets, and publishes a GitHub release whose body comes from `.github/release-notes.md`.

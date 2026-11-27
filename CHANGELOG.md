@@ -7,6 +7,35 @@ Every release must update this file, both READMEs, `.github/release-notes.md`,
 
 ---
 
+## [1.3.0] — 2026-11-27
+
+### Added
+
+- **Automatic model discovery for "Show subtitles"** (`src/model-cache.js`, `resolveTextModel` in the service worker). Before the first caption translation the worker probes which models answer on the key (the same probe as *Find the models that work on my key*), uses the thriftiest one in *Automatic* mode and passes the other verified models to the translator as fallbacks. The result is cached in `chrome.storage.local` for 12 hours under a 16-hex SHA-256 fingerprint of the key. The probe is lazy: a track served from translation memory or a same-language track costs nothing. If a remembered model fails with `err.api`, `err.translateFailed` or `err.quota`, the probe is forced once and the build is retried.
+- **Zero-quota fallback** in `TrackTranslator`: a 429 whose message says `limit: 0` before any batch succeeded switches to the next candidate model instead of waiting and failing.
+- **Worker-restart persistence** — the stage cues are written to `chrome.storage.session` (`dubleParsiTrack`) next to the existing state snapshot, and a `restoring` promise brings `stagePhase`, `track`, the saved files and the cues back when the worker wakes up. Message handling and the tab listeners wait for it.
+- **Save from the YouTube quick panel** — a *Save these subtitles* button (`dp-mini-save`) appears while a caption track is on the video.
+- **RTL-safe subtitle files** — `forFile` / `rtlLineForFile` in `src/bidi.js` and `subtitleFile` in `src/captions.js`: right-to-left lines get `RLM RLE … PDF RLM`, Latin runs `LRE … PDF`, sentence punctuation stays outside the Latin run, and SRT and VTT both start with a UTF-8 BOM.
+- 16 unit tests in `test/release-1.3.0.test.mjs` and `test/worker-restore.test.mjs`.
+
+### Changed
+
+- **The subtitle model list, the model finder button and its status moved to the "API key and language" section** of the popup; the list is filled from the shared model cache automatically.
+- Both the caption-track export (service worker) and the dubbing-session export (offscreen document) now use `subtitleFile`.
+- Version 1.3.0 in `manifest.json`, `package.json`, both READMEs, `SECURITY.md` and the release notes.
+
+### Fixed
+
+- **"Show subtitles" failed most of the time** until *Find the models…* was pressed by hand — now automatic (see Added).
+- **Exporting subtitles was impossible after closing the popup** and the *Save these subtitles* button disappeared, because the sleeping service worker lost the cues and the stage state.
+- **Saved Persian subtitles were displayed wrongly in PotPlayer and other players** (punctuation at the wrong end, English words out of place).
+- The model label read "Text translation model": `field.textModel` was defined twice in each dictionary.
+- A blank line inside a cue could terminate an SRT block early; empty lines are dropped from cue text.
+- *Start / Stop dubbing* in the popup stayed disabled when the worker did not answer.
+- `.github/release-notes.md` had an unclosed RTL `div` and an outdated model hint.
+
+---
+
 ## [1.2.0] — 2026-10-31
 
 ### Added
@@ -130,6 +159,35 @@ First public release.
 
 <div dir="rtl">
 
+## [<span dir="ltr">1.3.0</span>] — ۶ آذر ۱۴۰۵
+
+### افزوده شد
+
+- **یافتن خودکار مدل برای «نمایش زیرنویس»** (<span dir="ltr">`src/model-cache.js`</span> و <span dir="ltr">`resolveTextModel`</span> در سرویس‌ورکر). پیش از اولین ترجمهٔ زیرنویس، سرویس‌ورکر بررسی می‌کند کدام مدل‌ها روی کلید جواب می‌دهند (همان بررسیِ «یافتن مدل‌هایی که روی کلید من کار می‌کنند»)، در حالت «خودکار» کم‌مصرف‌ترین را به کار می‌برد و بقیهٔ مدل‌های تأییدشده را به‌عنوان جایگزین به مترجم می‌دهد. نتیجه ۱۲ ساعت در <span dir="ltr">`chrome.storage.local`</span> و زیر اثر انگشت ۱۶ رقمی <span dir="ltr">SHA-256</span> از کلید نگه داشته می‌شود. بررسی تنبل است: زیرنویسی که از حافظهٔ ترجمه یا هم‌زبان باشد هیچ هزینه‌ای ندارد. اگر مدل ذخیره‌شده با <span dir="ltr">`err.api`</span>، <span dir="ltr">`err.translateFailed`</span> یا <span dir="ltr">`err.quota`</span> شکست بخورد، بررسی یک بار اجباری تکرار و ساخت زیرنویس دوباره امتحان می‌شود.
+- **گذر از سهمیهٔ صفر** در <span dir="ltr">`TrackTranslator`</span>: خطای <span dir="ltr">429</span> با پیام <span dir="ltr">`limit: 0`</span>، تا وقتی هیچ بسته‌ای موفق نشده، به‌جای صبر و شکست، مدل نامزد بعدی را امتحان می‌کند.
+- **ماندگاری پس از خواب سرویس‌ورکر** — کیوهای صحنه کنار وضعیت جلسه در <span dir="ltr">`chrome.storage.session`</span> (<span dir="ltr">`dubleParsiTrack`</span>) نوشته می‌شوند و وعدهٔ <span dir="ltr">`restoring`</span> با بیدار شدن سرویس‌ورکر <span dir="ltr">`stagePhase`</span>، <span dir="ltr">`track`</span>، فایل‌های ذخیره‌شده و کیوها را برمی‌گرداند. پیام‌ها و شنونده‌های تب منتظر آن می‌مانند.
+- **ذخیره از پنل سریع یوتیوب** — دکمهٔ «ذخیرهٔ این زیرنویس» (<span dir="ltr">`dp-mini-save`</span>) وقتی زیرنویس سایت روی ویدئو است دیده می‌شود.
+- **فایل زیرنویس راست‌چینِ امن** — <span dir="ltr">`forFile`</span> و <span dir="ltr">`rtlLineForFile`</span> در <span dir="ltr">`src/bidi.js`</span> و <span dir="ltr">`subtitleFile`</span> در <span dir="ltr">`src/captions.js`</span>: سطر راست‌به‌چپ <span dir="ltr">`RLM RLE … PDF RLM`</span> می‌گیرد، تکهٔ لاتین <span dir="ltr">`LRE … PDF`</span>، علامت پایان جمله بیرون از تکهٔ لاتین می‌ماند و هر دو فرمت <span dir="ltr">SRT</span> و <span dir="ltr">VTT</span> با <span dir="ltr">BOM</span> یونیکد شروع می‌شوند.
+- ۱۶ تست واحد در <span dir="ltr">`test/release-1.3.0.test.mjs`</span> و <span dir="ltr">`test/worker-restore.test.mjs`</span>.
+
+### تغییر کرد
+
+- **فهرست مدل زیرنویس، دکمهٔ یافتن مدل و پیام وضعیتش به بخش «کلید <span dir="ltr">API</span> و زبان»** در پاپ‌آپ منتقل شدند و فهرست خودکار از حافظهٔ مشترک مدل‌ها پر می‌شود.
+- خروجی زیرنویس سایت (سرویس‌ورکر) و خروجی جلسهٔ دوبله (سند <span dir="ltr">offscreen</span>) هر دو از <span dir="ltr">`subtitleFile`</span> استفاده می‌کنند.
+- نسخهٔ <span dir="ltr">1.3.0</span> در <span dir="ltr">`manifest.json`</span>، <span dir="ltr">`package.json`</span>، هر دو ردمی، <span dir="ltr">`SECURITY.md`</span> و یادداشت ریلیز.
+
+### رفع شد
+
+- **«نمایش زیرنویس» در بیشتر مواقع زیرنویسی نشان نمی‌داد** تا وقتی «یافتن مدل‌ها…» دستی زده می‌شد — حالا خودکار است.
+- **بعد از بستن پاپ‌آپ، خروجی گرفتن از زیرنویس ممکن نبود** و دکمهٔ «ذخیرهٔ این زیرنویس» حذف می‌شد، چون سرویس‌ورکرِ خوابیده کیوها و وضعیت صحنه را از دست می‌داد.
+- **زیرنویس فارسیِ ذخیره‌شده در <span dir="ltr">PotPlayer</span> و پخش‌کننده‌های دیگر درست نمایش داده نمی‌شد** (علامت‌ها در طرف اشتباه و کلمه‌های انگلیسی نابه‌جا).
+- برچسب مدل «مدل ترجمهٔ متن» نوشته می‌شد، چون <span dir="ltr">`field.textModel`</span> در هر دیکشنری دو بار تعریف شده بود.
+- سطر خالی داخل یک کیو می‌توانست بلوک <span dir="ltr">SRT</span> را زودتر ببندد؛ سطرهای خالی از متن کیو حذف می‌شوند.
+- دکمهٔ «شروع/توقف دوبله» در پاپ‌آپ اگر سرویس‌ورکر جواب نمی‌داد غیرفعال می‌ماند.
+- در <span dir="ltr">`.github/release-notes.md`</span> یک <span dir="ltr">`div`</span> راست‌چینِ بسته‌نشده و راهنمای قدیمی مدل وجود داشت.
+
+---
+
 ## [<span dir="ltr">1.2.0</span>] — ۹ آبان ۱۴۰۵
 
 ### افزوده شد
@@ -244,6 +302,7 @@ First public release.
 
 </div>
 
+[1.3.0]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.3.0
 [1.2.0]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.2.0
 [1.0.1]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.1
 [1.0.0]: https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.0.0

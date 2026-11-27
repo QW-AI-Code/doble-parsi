@@ -25,7 +25,7 @@
  */
 import { LiveDubClient } from "./live-client.js";
 import { Mp3Recorder } from "./mp3-recorder.js";
-import { CaptionTrack, toSrt, toVtt } from "./captions.js";
+import { CaptionTrack, subtitleFile } from "./captions.js";
 import { buildOutputPath, timestampTag } from "./filenames.js";
 import { findLanguage } from "./languages.js";
 import { SincResampler } from "./resampler.js";
@@ -520,10 +520,11 @@ async function stopSession(request = {}) {
         : [settings.subtitleFormat === "vtt" ? "vtt" : "srt"];
       for (const format of formats) {
         try {
-          const text = format === "vtt" ? toVtt(cues) : toSrt(cues);
+          // راست‌چینی برای پخش‌کننده‌های بیرونی + BOM (هم SRT و هم VTT)
+          const text = subtitleFile(format, cues);
           // نوع MIME عمداً octet-stream است: با نوع‌های متنی، کروم پسوند را
           // بازنویسی می‌کرد و فایل زیرنویس بدون .srt ذخیره می‌شد.
-          const blob = new Blob([format === "srt" ? `\uFEFF${text}` : text], {
+          const blob = new Blob([text], {
             type: "application/octet-stream"
           });
           files.push(await downloadBlob(

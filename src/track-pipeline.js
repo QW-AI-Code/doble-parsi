@@ -177,11 +177,14 @@ function decorate(cues) {
  * @param {object} options.settings
  * @param {string} options.sourceUrl
  * @param {(done: number, total: number) => void} [options.onProgress]
+ * @param {() => Promise<{model: string, fallbacks: string[]}|null>} [options.resolveModel]
+ *   فقط وقتی صدا زده می‌شود که واقعاً ترجمه لازم باشد (نه برای حافظه یا هم‌زبان)؛
+ *   مدل کارکنندهٔ همین کلید را برمی‌گرداند و در صورت نیاز خودکار پیدا می‌کند.
  * @returns {Promise<null | {cues: Array, lang: string, method: string, origin: string,
  *   fromMemory: number, translated: number, model: string}>}
  */
 export async function buildTranslatedTrack({
-  tabId, settings, sourceUrl, onProgress, onUsage, onQuota, onSearching
+  tabId, settings, sourceUrl, onProgress, onUsage, onQuota, onSearching, resolveModel
 }) {
   const found = await discoverWithPlayerCaptions(tabId, settings, onSearching);
   if (!found) return null;
@@ -244,9 +247,12 @@ export async function buildTranslatedTrack({
   let requests = 0;
 
   if (missing.length) {
+    // مدلِ کارکنندهٔ همین کلید، فقط وقتی که واقعاً درخواستی قرار است برود
+    const picked = (await resolveModel?.().catch(() => null)) ?? null;
     const translator = new TrackTranslator({
       apiKey: settings.apiKey,
-      model: settings.textModel,
+      model: picked?.model || settings.textModel,
+      fallbacks: picked?.fallbacks ?? [],
       targetLanguage: findLanguage(target).english,
       tone,
       onProgress: (done) => onProgress?.(known.size + done, texts.length),

@@ -2,6 +2,7 @@
  * ساخت زیرنویس از تکه‌های متنی که به‌صورت زنده از مدل می‌رسد
  * و تبدیل آن به SRT / WebVTT.
  */
+import { forFile } from "./bidi.js";
 
 const SENTENCE_END = /[.!?؟…۔。！？]["'”»)\]]?$/u;
 const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u;
@@ -103,16 +104,38 @@ export class CaptionTrack {
   }
 }
 
-export function toSrt(cues) {
+/**
+ * متن کیو برای فایل.
+ * `rtl: true` (پیش‌فرض) سطرهای فارسی/عربی را برای پخش‌کننده‌های بیرونی
+ * راست‌چین می‌کند؛ سطرهای لاتین دست‌نخورده می‌مانند. سطر خالی هم حذف
+ * می‌شود، چون در SRT سطر خالی یعنی پایان کیو.
+ */
+function cueText(text, rtl) {
+  const value = String(text ?? "");
+  const lines = rtl ? forFile(value) : value.split(/\r?\n/).filter((line) => line.trim()).join("\n");
+  return lines || " ";
+}
+
+export function toSrt(cues, { rtl = true } = {}) {
   return cues
     .map((cue, index) =>
-      `${index + 1}\n${stamp(cue.start, ",")} --> ${stamp(cue.end, ",")}\n${cue.text}\n`)
+      `${index + 1}\n${stamp(cue.start, ",")} --> ${stamp(cue.end, ",")}\n${cueText(cue.text, rtl)}\n`)
     .join("\n");
 }
 
-export function toVtt(cues) {
+export function toVtt(cues, { rtl = true } = {}) {
   const body = cues
-    .map((cue) => `${stamp(cue.start, ".")} --> ${stamp(cue.end, ".")}\n${cue.text}\n`)
+    .map((cue) => `${stamp(cue.start, ".")} --> ${stamp(cue.end, ".")}\n${cueText(cue.text, rtl)}\n`)
     .join("\n");
   return `WEBVTT\n\n${body}`;
+}
+
+/**
+ * محتوای کامل فایل زیرنویس، آمادهٔ ذخیره.
+ * BOM در ابتدای فایل است تا پخش‌کننده‌های ویندوزی (PotPlayer، MPC، KMPlayer)
+ * رمزگذاری UTF-8 را درست تشخیص دهند و حروف فارسی به‌هم‌ریخته نشوند.
+ */
+export function subtitleFile(format, cues, options) {
+  const body = format === "vtt" ? toVtt(cues, options) : toSrt(cues, options);
+  return `\uFEFF${body}`;
 }

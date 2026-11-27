@@ -91,6 +91,14 @@
           <span class="hint" id="apiStatus"></span>
         </div>
 
+        <!-- مدل ترجمهٔ زیرنویس کنار کلید است، چون به همان کلید بسته است -->
+        <div class="field">
+          <label class="label" for="textModel" data-i18n="field.textModel">مدل ترجمهٔ زیرنویس</label>
+          <select id="textModel"></select>
+          <button class="ghost wide" id="modelProbe" type="button" data-i18n="btn.modelProbe">یافتن مدل‌هایی که روی کلید من کار می‌کنند</button>
+          <span class="hint" id="modelStatus" data-i18n="hint.modelProbe">هر بررسی چند توکن مصرف می‌کند؛ مدل‌های کم‌مصرف اول امتحان می‌شوند.</span>
+        </div>
+
         <label class="field">
           <span class="label" data-i18n="field.targetLang">زبان ترجمه</span>
           <select id="targetLang"></select>
@@ -325,12 +333,6 @@
             </span>
           </label>
 
-          <label class="field">
-            <span class="label" data-i18n="field.textModel">مدل ترجمهٔ زیرنویس</span>
-            <select id="textModel"></select>
-          </label>
-          <button class="ghost wide" id="modelProbe" type="button" data-i18n="btn.modelProbe">یافتن مدل‌هایی که روی کلید من کار می‌کنند</button>
-          <span class="hint" id="modelStatus" data-i18n="hint.modelProbe">هر بررسی چند توکن مصرف می‌کند؛ مدل‌های کم‌مصرف اول امتحان می‌شوند.</span>
         </div>
 
         <label class="switch-row">

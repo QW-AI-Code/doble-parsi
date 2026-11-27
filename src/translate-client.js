@@ -174,8 +174,9 @@ export class TrackTranslator {
    * @param {string} [options.tone] لحن دلخواه کاربر
    * @param {(done: number, total: number) => void} [options.onProgress]
    * @param {(model: string) => void} [options.onModel] مدلی که عملاً کار کرد
+   * @param {string[]} [options.fallbacks] مدل‌هایی که بررسی خودکار روی همین کلید سالم دید
    */
-  constructor({ apiKey, model, targetLanguage, tone, onProgress, onModel, onUsage, onQuota }) {
+  constructor({ apiKey, model, targetLanguage, tone, onProgress, onModel, onUsage, onQuota, fallbacks }) {
     this.apiKey = String(apiKey ?? "").trim();
     this.targetLanguage = targetLanguage;
     this.tone = sanitizeTone(tone);
@@ -200,7 +201,9 @@ export class TrackTranslator {
     this.hopelessAt = 0;
 
     const wanted = String(model ?? "").trim();
-    this.candidates = [...new Set([wanted, ...MODEL_FALLBACKS].filter(Boolean))];
+    const verified = (Array.isArray(fallbacks) ? fallbacks : []).map((id) => String(id ?? "").trim());
+    // اول خواستهٔ کاربر، بعد مدل‌هایی که روی همین کلید جواب داده‌اند، بعد پیش‌فرض‌ها
+    this.candidates = [...new Set([wanted, ...verified, ...MODEL_FALLBACKS].filter(Boolean))];
     this.model = this.candidates[0];
     this.discovered = false;
 
@@ -325,6 +328,18 @@ export class TrackTranslator {
       } catch (error) {
         lastError = error;
 
+        // سهمیهٔ «صفر» یعنی این مدل اصلاً روی سطح این کلید باز نیست
+        // (مثلاً «limit: 0» برای مدل‌های بدون سهمیهٔ رایگان). صبر کردن فایده
+        // ندارد؛ تا هیچ بسته‌ای موفق نشده، سراغ مدل بعدی می‌رویم.
+        if (error?.quota && error.zeroQuota && this.stats.ok === 0) {
+          const next = this.candidates[this.candidates.indexOf(this.model) + 1];
+          if (next && next !== this.model) {
+            this.model = next;
+            attempt -= 1;
+            continue;
+          }
+        }
+
         // سهمیه: صبر به همان اندازه‌ای که سرویس گفته، و تک‌خطی شدن
         if (error?.quota) {
           this.quotaHits += 1;
@@ -418,6 +433,7 @@ export class TrackTranslator {
       failure.retryable = answer.status === 429 || answer.status >= 500;
       failure.missingModel = answer.status === 404 || /not found|not supported/i.test(String(message));
       failure.quota = quota;
+      failure.zeroQuota = quota && /limit:\s*0\b|limit of 0\b/i.test(String(message));
       failure.retryMs = quota ? parseRetryDelay(parsed, message) : 0;
       if (answer.status === 400 && /api key/i.test(String(message))) failure.code = "err.badKey";
       if (answer.status === 403 && !quota) failure.code = "err.badKey";

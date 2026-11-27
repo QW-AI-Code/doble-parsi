@@ -4,7 +4,7 @@
 
 # Doble Parsi — دوبله پارسی
 
-[![version](https://img.shields.io/badge/version-1.2.0-3b6dff)](https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.2.0)
+[![version](https://img.shields.io/badge/version-1.3.0-3b6dff)](https://github.com/QW-AI-Code/doble-parsi/releases/tag/v1.3.0)
 [![license](https://img.shields.io/badge/license-MIT-16a34a)](LICENSE)
 [![build](https://github.com/QW-AI-Code/doble-parsi/actions/workflows/build.yml/badge.svg)](https://github.com/QW-AI-Code/doble-parsi/actions/workflows/build.yml)
 [![manifest](https://img.shields.io/badge/manifest-v3-8b5cf6)](manifest.json)
@@ -17,7 +17,16 @@
 
 ---
 
-## What's new — v1.2.0
+## What's new — v1.3.0
+
+- **The subtitle model picker moved to "API key and language".** The *Subtitle translation model* list, the *Find the models that work on my key* button and its status line now sit right under the key and *Test the key and connection*, because the model depends on the key. The list is filled automatically with the models that actually answered on your key.
+- **"Show subtitles" finds a working model by itself.** Most failed subtitle runs came from a default model that has no free-tier quota (`limit: 0`) or does not exist on the key, and the only cure was pressing *Find the models…* by hand. That probe now runs automatically before the first translation, picks the thriftiest working model (a model you chose by hand is still respected), and is remembered for 12 hours per key — only a short SHA-256 fingerprint of the key is stored, never the key. If the remembered model stops answering, the probe runs once more and the translation is retried. A model that answers with a zero quota is skipped for the next verified one instead of failing the whole run.
+- **Saving subtitles works after the popup was closed.** Chrome puts the extension's service worker to sleep a few seconds after the popup closes, and with it the translated cues and the subtitle state were lost: the *Save these subtitles* button disappeared although the subtitle was still on the video. The state and the cues are now kept in `chrome.storage.session` and restored when the worker wakes up, and messages wait for that restore. The YouTube quick panel also gained a **Save these subtitles** button, so you can export without opening the popup at all.
+- **Persian subtitles read correctly in PotPlayer, VLC, MPC-HC, KMPlayer and MX Player.** In the browser the line is right-to-left thanks to `dir="rtl"` and Unicode isolates, but a saved SRT/VTT is plain text and external players draw it left-to-right, so the full stop jumped to the start and English words moved around. Every right-to-left line in a saved file is now wrapped in the widely supported `RLM + RLE … PDF + RLM` marks, Latin runs inside it get their own `LRE … PDF`, sentence punctuation stays outside the Latin run, and both SRT and VTT start with a UTF-8 BOM. This applies to the caption-track export and to the subtitles of a dubbing session.
+- **Other fixes found while reviewing the project:** the model label showed "Text translation model" because the key was defined twice in the dictionary; a blank line inside a cue could cut an SRT block short; *Start/Stop dubbing* in the popup no longer stays disabled if the worker does not answer; the Persian part of the release notes had an unclosed RTL block and an outdated hint.
+- 16 new unit tests (RTL file output, BOM, key fingerprint, model cache, zero-quota fallback, popup layout, worker restore, quick-panel save). `npm run verify` passes: lint, 126 tests, build.
+
+## Previous release — v1.2.0
 
 - **The original audio can now be silenced completely** — the root cause is fixed. The original track used to be lowered only briefly while the dub was speaking (and only towards a value it never exactly reached), so it stayed audible and drowned the dub. There is now a dedicated **Original video audio** volume (0–100 %) applied to playback with an exact ramp: **0 is true silence**, plus a one-tap **Mute** button. The MP3 mix is deliberately not affected by this playback volume.
 - **A separate Dub voice volume** (0–150 %), so a quiet dub can be boosted without touching the original. Both volumes apply instantly while dubbing and are remembered.
@@ -89,7 +98,7 @@
 
 ### Easy installation in Chrome / Edge (Recommended)
 
-1. **Download the extension:** Download `doble-parsi-1.2.0-chrome.zip` from the top of the [Releases page](https://github.com/QW-AI-Code/doble-parsi/releases).
+1. **Download the extension:** Download `doble-parsi-1.3.0-chrome.zip` from the top of the [Releases page](https://github.com/QW-AI-Code/doble-parsi/releases).
 2. **Unzip the file:** Right-click the downloaded zip file and select **Extract All...** (or Unzip). You will get a regular folder containing the extension files (such as `manifest.json`, `src/`, etc.).
 3. **Open Extensions page in Chrome:** In your Chrome browser address bar, type `chrome://extensions` and press Enter. (For Microsoft Edge, go to `edge://extensions`).
 4. **Enable Developer mode:** Look at the top-right corner of the page and turn ON the toggle switch for **Developer mode**.
@@ -107,7 +116,7 @@ npm install
 npm run build
 ```
 
-`npm run build` writes the loadable folder to `dist/doble-parsi/` and the packaged archive to `dist/doble-parsi-1.2.0-chrome.zip`. Load the folder with **Load unpacked**.
+`npm run build` writes the loadable folder to `dist/doble-parsi/` and the packaged archive to `dist/doble-parsi-1.3.0-chrome.zip`. Load the folder with **Load unpacked**.
 
 ## How to use
 
@@ -141,10 +150,11 @@ Tip: keep the dubbed tab in the foreground. Chrome throttles background tabs, wh
 | **File content** | *Dub + original (mix)* keeps both, *Dub only* keeps just the dubbed voice. |
 | **Quality** | MP3 bitrate: 96, 128 (default) or 192 kbps. |
 | **Save subtitles** | Writes a timed subtitle file built from the dub transcript. |
-| **Format** | `SRT`, `VTT`, or both. |
+| **Format** | `SRT`, `VTT`, or both. Right-to-left lines are written with bidi marks and a UTF-8 BOM so external players show them correctly. |
 | **Delay offset (ms)** | Shifts every cue earlier to compensate for dubbing latency. Default 1200 ms, range 0–6000. |
 | **Also save source-language subtitles** | Adds a second `.original.srt` / `.vtt` with the original speech. |
 | **Match the original video name** | On: files carry the video's own name. Off: a timestamp is appended. |
+| **Subtitle translation model** | In *API key and language*. *Automatic* (recommended) uses the thriftiest model that really answers on your key, found automatically on the first *Show subtitles*. *Find the models that work on my key* refreshes the list by hand. |
 | **Translation model** | The live model id. Change it only if the default stops working. |
 | **فا / EN** | Interface language and direction. Persian is the default. |
 
@@ -176,7 +186,8 @@ There is no `tabs` permission, no `<all_urls>` and no web-accessible resource. T
 | Bundled encoder | A pre-built WebAssembly MP3 encoder under MPL-2.0, running in a dedicated worker with no network access. It only ever receives PCM samples. Its licence text ships in `src/vendor/`. |
 | Third-party runtime dependencies | None. `dependencies` and `devDependencies` are empty; the build, lint and test tooling is plain Node.js. |
 | DOM handling | Every UI string is set with `textContent`; there is no `innerHTML` assignment anywhere. |
-| Data retention | Nothing leaves your machine except the audio stream sent for translation. The session snapshot lives in `storage.session` and is cleared on browser start; the transcript is only in memory. |
+| Data retention | Nothing leaves your machine except the audio stream sent for translation. The session snapshot and the cues of the on-video subtitle live in `storage.session` (so they survive the worker going to sleep) and are cleared on browser start. |
+| Model cache | The list of models that answered on your key is kept in `storage.local` under a 16-hex SHA-256 fingerprint of the key; the key itself is never copied there. The list expires after 12 hours. |
 | Supply chain | `npm install` pulls nothing. Release artifacts are built by a pinned workflow and published with a SHA-256 checksum file. |
 
 ## Troubleshooting & FAQ
@@ -198,6 +209,10 @@ There is no `tabs` permission, no `<all_urls>` and no web-accessible resource. T
 **Does it work without internet?** No. Translation happens in the cloud. Everything else (encoding, subtitles, fonts) is local.
 
 **Is my audio stored anywhere?** Not by this extension. It streams to the AI endpoint and is never written to disk except in the MP3 you asked for.
+
+**"Show subtitles" did nothing / no subtitle appeared.** Since v1.3.0 the extension finds a working model on its own; the popup says *Finding a model that works on your key…* while it does. If it still fails, the key has no quota left today — check the *Token usage and quota* card.
+
+**The saved subtitle looks scrambled in PotPlayer or VLC.** Files saved with v1.3.0 or later carry right-to-left marks and a BOM. Re-save older files from the extension, and keep the player's subtitle encoding on *Auto* or *UTF-8*.
 
 **Which browsers?** Chromium 116 and newer: Chrome, Edge, Brave, Vivaldi, Opera.
 
@@ -233,11 +248,11 @@ docs/screenshots/        images used by both READMEs
 ## Publish your own copy
 
 ```bash
-git init && git add . && git commit -m "chore: release 1.2.0"
+git init && git add . && git commit -m "chore: release 1.3.0"
 git branch -M main
 git remote add origin https://github.com/<user>/doble-parsi.git
 git push -u origin main
-git tag v1.2.0 && git push origin v1.2.0
+git tag v1.3.0 && git push origin v1.3.0
 ```
 
 Pushing the tag runs `release.yml`, which builds the extension, writes `checksums.txt`, adds a `.crx` if a signing key is stored in secrets, and publishes a GitHub release whose body comes from `.github/release-notes.md`.

@@ -7,6 +7,7 @@ import { LANGUAGES } from "./languages.js";
 import { OVERLAY_THEMES, SCALE_RANGE } from "./themes.js";
 import { applyDom, digits, dirOf, getLang, message, setLang, t, UI_LANGS } from "./i18n.js";
 import { MODEL_FALLBACKS } from "./translate-client.js";
+import { MODEL_CACHE_KEY, isFresh, keyTag, readModelCache } from "./model-cache.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -172,6 +173,28 @@ function buildThemeChips(lang) {
  */
 let probedModels = [];
 
+/**
+ * فهرست مدل‌های کارکننده را از حافظهٔ مشترک می‌خواند (همان که سرویس‌ورکر
+ * هنگام «نمایش زیرنویس» خودکار پر می‌کند)، فقط اگر مال همین کلید باشد.
+ */
+async function loadCachedModels(entry) {
+  const cached = entry ?? (await readModelCache());
+  const tag = await keyTag(ui.apiKey.value).catch(() => "");
+  const next = isFresh(cached, tag) ? cached.models : [];
+  if (JSON.stringify(next) === JSON.stringify(probedModels)) return;
+  probedModels = next;
+  fillModels();
+}
+
+let lastAutoModel = "";
+/** وقتی سرویس‌ورکر خودش مدلی پیدا کرد، زیر فهرست مدل‌ها گفته می‌شود */
+function noteAutoModel(state) {
+  const model = state?.textModelInUse ?? "";
+  if (!model || model === lastAutoModel || settings.textModel) return;
+  lastAutoModel = model;
+  setNote(ui.modelStatus, t("api.autoPicked", { model }), "is-ok");
+}
+
 function fillModels() {
   const previous = settings.textModel ?? "";
   const rows = [{ value: "", label: t("opt.autoModel") }];
@@ -303,6 +326,11 @@ ui.originalMute.addEventListener("click", () => {
   }
   pushVolumes();
   persist();
+});
+
+// سرویس‌ورکر مدل‌های کارکننده را خودکار پیدا کرد ⇒ فهرست هم به‌روز می‌شود
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[MODEL_CACHE_KEY]) loadCachedModels(changes[MODEL_CACHE_KEY].newValue ?? null);
 });
 
 // پنل روی ویدئو ولوم را عوض کرد ⇒ لغزنده‌ها هم‌گام می‌شوند
@@ -603,6 +631,9 @@ ui.stageSave.addEventListener("click", async () => {
 /** توضیح وضعیت مسیر زیرنویس، با عددهای واقعی */
 function stageMessage(state) {
   const track = state.track;
+  if (state.stagePhase === "working" && state.stageProbing) {
+    return { text: t("stage.autoProbe"), tone: "" };
+  }
   if (state.stagePhase === "working") {
     // تا وقتی زیرنویس پیدا نشده، «در حال ترجمه» گمراه‌کننده است
     if (state.stageSearch) {
@@ -642,7 +673,9 @@ function renderStage(state) {
   ui.stageAction.disabled = working;
   ui.stageAction.classList.toggle("is-on", running);
   ui.stageActionLabel.textContent = working
-    ? (state.stageSearch ? t("btn.stageSearching") : t("btn.stageWorking", { n: digits(state.stageProgress ?? 0) }))
+    ? (state.stageProbing
+      ? t("btn.stageProbing")
+      : state.stageSearch ? t("btn.stageSearching") : t("btn.stageWorking", { n: digits(state.stageProgress ?? 0) }))
     : running ? t("btn.stageStop") : t("btn.stageStart");
 
   const status = stageMessage(state);
@@ -651,6 +684,7 @@ function renderStage(state) {
   if (status.tone) ui.stageStatus.classList.add(status.tone);
 
   ui.stageSave.hidden = state.stagePhase !== "track";
+  noteAutoModel(state);
 }
 
 /* ── فایل‌ها و وضعیت کلی ─────────────────────────────────────────── */
@@ -745,7 +779,7 @@ async function start() {
   await saveSettings(settings);
   showAlert("");
   ui.action.disabled = true;
-  const response = await chrome.runtime.sendMessage({ type: "dp-start", settings });
+  const response = await chrome.runtime.sendMessage({ type: "dp-start", settings }).catch(() => null);
   if (!response?.ok) {
     showAlert(message(response?.error) || t("err.startFailed"));
     ui.action.disabled = false;
@@ -756,7 +790,7 @@ async function start() {
 
 async function stop() {
   ui.action.disabled = true;
-  const response = await chrome.runtime.sendMessage({ type: "dp-stop" });
+  const response = await chrome.runtime.sendMessage({ type: "dp-stop" }).catch(() => null);
   if (response?.ok) render(response.state);
   else showAlert(message(response?.error) || t("err.stopFailed"));
   ui.action.disabled = false;
@@ -834,7 +868,9 @@ chrome.runtime.onMessage.addListener((msg) => {
   applyLanguage(settings.uiLang, { rerender: false });
   writeForm();
   applyFolds();
-  const response = await chrome.runtime.sendMessage({ type: "dp-get-state" });
+  loadCachedModels();
+  ui.apiKey.addEventListener("change", () => loadCachedModels());
+  const response = await chrome.runtime.sendMessage({ type: "dp-get-state" }).catch(() => null);
   render(response?.state ?? { phase: "idle", stagePhase: "idle" });
   refreshUsage();
 })();

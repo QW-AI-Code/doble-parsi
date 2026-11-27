@@ -70,6 +70,69 @@ export function stripIsolates(text) {
   return String(text ?? "").replace(/[\u2066\u2067\u2068\u2069\u200e\u200f]/g, "");
 }
 
+/* ── راست‌چینی برای فایل زیرنویس (پخش‌کننده‌های بیرونی) ─────────────────
+ *
+ * مشکل (رفع‌شده در ۱.۳.۰): روی خود ویدئو، مرورگر `dir="rtl"` و جداسازهای
+ * LRI/PDI را می‌فهمد و جمله درست دیده می‌شود. اما فایل SRT/VTT متن خام است و
+ * پخش‌کننده‌هایی مثل PotPlayer، VLC، MPC-HC، KMPlayer و MX Player آن را با
+ * جهت پایهٔ چپ‌به‌راست می‌کشند: نقطه و علامت سؤال به ابتدای جمله می‌پرد و
+ * تکه‌های انگلیسی جابه‌جا می‌شوند. جداسازهای LRI/PDI هم در بسیاری از این
+ * پخش‌کننده‌ها پشتیبانی نمی‌شوند و گاهی مربع نمایش داده می‌شوند.
+ *
+ * راه‌حل همان روشی است که ابزارهای زیرنویس (مثل «Fix RTL» در Subtitle Edit)
+ * به کار می‌برند و همهٔ این پخش‌کننده‌ها می‌فهمند — کاراکترهای قدیمی‌تر و
+ * فراگیرتر «embedding»:
+ *   • هر سطر راست‌به‌چپ با RLM + RLE شروع و با PDF + RLM تمام می‌شود؛
+ *   • هر تکهٔ لاتین داخلش در LRE … PDF پیچیده می‌شود؛
+ *   • علامت پایان جمله بیرون از تکهٔ لاتین می‌ماند تا سمت چپِ جمله بنشیند.
+ */
+
+/** LEFT-TO-RIGHT EMBEDDING */
+export const LRE = "\u202a";
+/** RIGHT-TO-LEFT EMBEDDING */
+export const RLE = "\u202b";
+/** POP DIRECTIONAL FORMATTING */
+export const PDF = "\u202c";
+/** RIGHT-TO-LEFT MARK */
+export const RLM = "\u200f";
+
+const BIDI_CONTROLS = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+const TRAILING_PUNCT = /[.,:;!?'’\-/\\]+$/;
+
+/** همهٔ کاراکترهای کنترل جهت را برمی‌دارد */
+export function stripBidiControls(text) {
+  return String(text ?? "").replace(BIDI_CONTROLS, "");
+}
+
+/** آیا این سطر حرف راست‌به‌چپ دارد؟ */
+export function hasRtl(text) {
+  return RTL_STRONG.test(String(text ?? ""));
+}
+
+/**
+ * یک سطر زیرنویس را برای پخش‌کنندهٔ بیرونی آماده می‌کند.
+ * سطر بدون حرف راست‌به‌چپ دست‌نخورده می‌ماند.
+ */
+export function rtlLineForFile(line) {
+  const clean = stripBidiControls(line).trim();
+  if (!clean || !hasRtl(clean)) return clean;
+  const body = clean.replace(LATIN_RUN, (run) => {
+    const tail = TRAILING_PUNCT.exec(run)?.[0] ?? "";
+    const core = tail ? run.slice(0, -tail.length) : run;
+    return core ? `${LRE}${core}${PDF}${tail}` : run;
+  });
+  return `${RLM}${RLE}${body}${PDF}${RLM}`;
+}
+
+/** متن چندسطری یک کیو، سطر به سطر */
+export function forFile(text) {
+  return String(text ?? "")
+    .split(/\r?\n/)
+    .map(rtlLineForFile)
+    .filter((line) => line.length)
+    .join("\n");
+}
+
 /**
  * متن آمادهٔ نمایش روی ویدئو، همراه جهتی که باید به عنصر داده شود.
  * @returns {{ text: string, dir: "rtl" | "ltr" }}

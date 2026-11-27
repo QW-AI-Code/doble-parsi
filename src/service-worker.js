@@ -21,16 +21,19 @@
  */
 import { clampVolume, loadSettings, saveSettings, stageConfig } from "./defaults.js";
 import { buildTranslatedTrack } from "./track-pipeline.js";
-import { toSrt, toVtt } from "./captions.js";
+import { subtitleFile } from "./captions.js";
 import { buildOutputPath, timestampTag } from "./filenames.js";
 import { clear as clearMemory, stats as memoryStats } from "./memory.js";
 import { forDisplay } from "./bidi.js";
 import { probeModels, testKey } from "./api-check.js";
+import { isFresh, keyTag, pickModel, readModelCache, writeModelCache } from "./model-cache.js";
 import * as usage from "./usage.js";
 import { setLang, digits, t, message as errorText } from "./i18n.js";
 
 const OFFSCREEN_PATH = "src/offscreen.html";
 const STATE_KEY = "dubleParsiState";
+/** کیوهای زیرنویس روی ویدئو؛ تا بعد از خواب سرویس‌ورکر هم بشود ذخیره‌شان کرد */
+const TRACK_KEY = "dubleParsiTrack";
 const STAGE_FILES = ["src/overlay/stage-css.js", "src/overlay/stage.js"];
 
 const state = {
@@ -53,6 +56,7 @@ const state = {
   stagePhase: "idle",  // idle | working | track | live
   stageTabId: null,
   stageSearch: null,   // { attempt, total } هنگام گشتن برای زیرنویس
+  stageProbing: false, // در حال یافتن خودکار مدلِ کارکنندهٔ همین کلید
   textModelInUse: "",  // مدلی که عملاً جواب داد، برای نمایش در پاپ‌آپ
   stageError: null,
   stageProgress: 0,
@@ -67,6 +71,77 @@ const stagedTabs = new Set();
 
 /** کیوهای ترجمه‌شدهٔ جلسهٔ فعلی صحنه، برای خروجی گرفتن */
 let trackCues = [];
+
+/**
+ * کیوها را عوض می‌کند و در `storage.session` هم نگه می‌دارد.
+ *
+ * چرا (رفع اشکال ۱.۳.۰): سرویس‌ورکر MV3 چند ثانیه بعد از بسته شدن پاپ‌آپ
+ * می‌خوابد و هرچه در حافظه بود — از جمله همین کیوها و `stagePhase` — از بین
+ * می‌رفت. نتیجه: با باز کردن دوبارهٔ پاپ‌آپ دکمهٔ «ذخیرهٔ این زیرنویس» غیب
+ * می‌شد و خروجی گرفتن ممکن نبود، با اینکه زیرنویس هنوز روی ویدئو بود.
+ */
+function setTrackCues(cues, tabId = state.stageTabId) {
+  trackCues = Array.isArray(cues) ? cues : [];
+  const store = chrome.storage.session;
+  if (!store) return;
+  if (!trackCues.length) {
+    store.remove(TRACK_KEY).catch(() => {});
+    return;
+  }
+  // فقط همان چیزی که برای فایل لازم است؛ نسخهٔ نمایشی دوباره ساخته نمی‌شود
+  const slim = trackCues.map((cue) => ({ start: cue.start, end: cue.end, text: cue.text, source: cue.source ?? "" }));
+  store.set({ [TRACK_KEY]: { tabId, cues: slim } }).catch(() => {});
+}
+
+/**
+ * وضعیت پیش از خوابِ سرویس‌ورکر را برمی‌گرداند.
+ * تا این کار تمام نشده، به هیچ پیامی جواب داده نمی‌شود (پایین‌تر).
+ */
+let restored = false;
+const restoring = (async () => {
+  try {
+    const saved = (await chrome.storage.session?.get([STATE_KEY, TRACK_KEY])) ?? {};
+    const previous = saved[STATE_KEY];
+    if (previous && typeof previous === "object") {
+      for (const key of ["stagePhase", "stageTabId", "track", "textModelInUse", "stageError", "files", "notices", "transcript"]) {
+        if (key in previous) state[key] = previous[key];
+      }
+      // جلسهٔ دوبله فقط وقتی زنده است که سند offscreen هنوز باشد
+      const offscreenAlive = await hasOffscreen().catch(() => false);
+      if (offscreenAlive && (previous.phase === "live" || previous.phase === "stopping")) {
+        for (const key of ["phase", "tabId", "tabTitle", "sourceUrl", "startedAt", "elapsedMs", "audioMs", "cueCount", "dubText", "sourceText", "error"]) {
+          if (key in previous) state[key] = previous[key];
+        }
+        state.phase = "live";
+      }
+    }
+    if (!Array.isArray(state.files)) state.files = [];
+    if (!Array.isArray(state.notices)) state.notices = [];
+    // کاری که وسط خواب نیمه‌کاره ماند، دوباره از اول شروع می‌شود
+    if (state.stagePhase === "working") state.stagePhase = "idle";
+    if (state.stagePhase === "live" && state.phase !== "live") state.stagePhase = "idle";
+
+    const track = saved[TRACK_KEY];
+    if (state.stagePhase === "track") {
+      const tab = typeof state.stageTabId === "number"
+        ? await chrome.tabs.get(state.stageTabId).catch(() => null)
+        : null;
+      if (tab && Array.isArray(track?.cues) && track.cues.length) {
+        trackCues = track.cues;
+        stagedTabs.add(tab.id);
+      } else {
+        state.stagePhase = "idle";
+        state.track = null;
+      }
+    }
+    if (state.stagePhase === "idle") {
+      state.stageTabId = null;
+      state.track = null;
+      if (!trackCues.length) chrome.storage.session?.remove(TRACK_KEY).catch(() => {});
+    }
+  } catch {}
+  restored = true;
+})();
 
 /**
  * متن غلتان صحنه در حالت دوبلهٔ زنده.
@@ -292,6 +367,45 @@ function badgeFor(origin, count) {
 }
 
 /**
+ * مدل کارکنندهٔ همین کلید را برمی‌گرداند و اگر لازم باشد خودکار پیدا می‌کند.
+ *
+ * همان کاری که دکمهٔ «یافتن مدل‌هایی که روی کلید من کار می‌کنند» می‌کرد، حالا
+ * پیش از ترجمه خودش انجام می‌شود. نتیجه برای همان کلید ۱۲ ساعت نگه داشته
+ * می‌شود، پس بیشتر وقت‌ها هیچ درخواست اضافه‌ای نمی‌رود.
+ *
+ * @returns {Promise<{model: string, fallbacks: string[], probed: boolean}>}
+ */
+async function resolveTextModel(settings, { force = false } = {}) {
+  const apiKey = String(settings.apiKey ?? "").trim();
+  const wanted = String(settings.textModel ?? "").trim();
+  if (!apiKey) return { model: wanted, fallbacks: [], probed: false };
+
+  const tag = await keyTag(apiKey).catch(() => "");
+  const cached = await readModelCache();
+  if (!force && isFresh(cached, tag)) return { ...pickModel(cached.models, wanted), probed: false };
+
+  state.stageProbing = true;
+  await publish();
+  try {
+    const result = await probeModels(apiKey, { onUsage: (sample) => usage.record(sample) });
+    if (result.quota) usage.noteQuota(result.quota.message, result.quota.retryMs);
+    if (result.models.length) {
+      await writeModelCache(apiKey, result.models);
+      const picked = pickModel(result.models, wanted);
+      if (!wanted && picked.model) state.textModelInUse = picked.model;
+      return { ...picked, probed: true };
+    }
+    return { model: wanted, fallbacks: [], probed: true };
+  } finally {
+    state.stageProbing = false;
+    await publish();
+  }
+}
+
+/** خطاهایی که با پیدا کردن دوبارهٔ مدل کارکننده درست می‌شوند */
+const MODEL_RELATED = new Set(["err.api", "err.translateFailed", "err.quota"]);
+
+/**
  * جلسهٔ نمایش زیرنویس روی ویدئو را شروع می‌کند.
  * اگر سایت زیرنویس واقعی داشته باشد، همان با زمان‌بندی خودش نمایش داده
  * می‌شود — بدون گرفتن صدا، بدون دوبله و بدون هزینهٔ صوتی.
@@ -305,9 +419,10 @@ async function startStage() {
   state.stageError = null;
   state.stageProgress = 0;
   state.stageSearch = null;
+  state.stageProbing = false;
   state.stageTabId = tab.id;
   state.track = null;
-  trackCues = [];
+  setTrackCues([], tab.id);
   stageLive.dub = "";
   stageLive.source = "";
   await publish();
@@ -323,10 +438,17 @@ async function startStage() {
     }
 
     await usage.startSession();
-    const built = await buildTranslatedTrack({
+    let probedThisRun = false;
+    const build = (force) => buildTranslatedTrack({
       tabId: tab.id,
       settings,
       sourceUrl: tab.url ?? "",
+      // یافتن خودکار مدل؛ فقط وقتی که ترجمهٔ تازه لازم است
+      resolveModel: async () => {
+        const picked = await resolveTextModel(settings, { force });
+        if (picked.probed) probedThisRun = true;
+        return picked;
+      },
       onUsage: (sample) => usage.record(sample),
       onQuota: (message, retryMs) => usage.noteQuota(message, retryMs),
       onSearching: (attempt, total) => {
@@ -341,6 +463,17 @@ async function startStage() {
         }
       }
     });
+
+    let built;
+    try {
+      built = await build(false);
+    } catch (error) {
+      // مدلِ ذخیره‌شده دیگر جواب نمی‌دهد؟ یک بار از نو بگرد و دوباره امتحان کن
+      if (probedThisRun || !MODEL_RELATED.has(error?.code)) throw error;
+      state.stageProgress = 0;
+      await publish();
+      built = await build(true);
+    }
 
     if (!built) {
       // زیرنویسی در سایت نبود. اگر کاربر اجازه داده باشد، همان لحظه مسیر
@@ -364,7 +497,7 @@ async function startStage() {
       ? { code: "err.quotaPartial", vars: { n: digits(built.untranslated) } }
       : null;
 
-    trackCues = built.cues;
+    setTrackCues(built.cues, tab.id);
     state.track = {
       count: built.cues.length,
       lang: built.lang,
@@ -385,6 +518,8 @@ async function startStage() {
   } catch (error) {
     state.stagePhase = "idle";
     state.stageTabId = null;
+    state.stageSearch = null;
+    state.stageProbing = false;
     state.stageError = toPayload(error);
     await publish();
     return snapshot();
@@ -397,7 +532,7 @@ async function stopStage() {
   state.stageTabId = null;
   state.stageProgress = 0;
   state.track = null;
-  trackCues = [];
+  setTrackCues([]);
   stageLive.dub = "";
   stageLive.source = "";
   if (typeof tabId === "number") await tellStage(tabId, { type: "dp-stage-clear" });
@@ -446,7 +581,7 @@ let resumeTimer = null;
 
 async function handleVideoChanged(tabId) {
   const wasRunning = state.stagePhase === "track" || state.stagePhase === "live";
-  trackCues = [];
+  setTrackCues([]);
   state.track = null;
   state.stageProgress = 0;
   state.stageError = null;
@@ -509,7 +644,8 @@ async function diagnoseStage() {
     const cues = job.cues.filter((cue) => cue.text?.trim());
     if (!cues.length) continue;
     for (const format of formats) {
-      const text = format === "vtt" ? toVtt(cues) : `\uFEFF${toSrt(cues)}`;
+      // راست‌چینی برای پخش‌کننده‌های بیرونی (PotPlayer، VLC، MPC…) + BOM
+      const text = subtitleFile(format, cues);
       const filename = buildOutputPath({
         title, url, extension: format, suffix: job.suffix, tag,
         useOriginalName: settings.useOriginalFilename !== false
@@ -758,7 +894,28 @@ async function miniState() {
 
 /* ══════════════════════ پیام‌ها ══════════════════════ */
 
+/**
+ * همهٔ پیام‌ها پس از بازگردانی وضعیت جواب می‌گیرند؛ وگرنه پاپ‌آپی که درست
+ * بعد از بیدار شدن سرویس‌ورکر باز شود، وضعیت خالی می‌بیند.
+ */
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
+  if (restored) return handleMessage(message, sender, respond);
+  const type = String(message?.type ?? "");
+  // پیام‌های سند offscreen و پخش وضعیت مال این شنونده نیستند
+  if (!type.startsWith("dp-") || type.startsWith("dp-off-") || type === "dp-state") return false;
+  restoring.then(() => {
+    let pending = false;
+    try {
+      pending = handleMessage(message, sender, respond) === true;
+    } catch {}
+    if (!pending) {
+      try { respond(); } catch {}
+    }
+  });
+  return true;
+});
+
+function handleMessage(message, sender, respond) {
   const type = message?.type;
 
   if (type === "dp-start") {
@@ -831,6 +988,16 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     return true;
   }
 
+  if (type === "dp-mini-save") {
+    // ذخیرهٔ زیرنویس از پنل کوچک روی یوتیوب، بی‌آنکه پاپ‌آپ باز باشد
+    saveTrackFiles()
+      .then((data) => miniState().then((mini) => respond({ ok: true, ...mini, saved: data.files.length })))
+      .catch((error) => miniState().then((mini) => respond({
+        ok: false, ...mini, errorText: errorText(toPayload(error))
+      })));
+    return true;
+  }
+
   if (type === "dp-stage-save") {
     saveTrackFiles()
       .then((data) => respond({ ok: true, ...data }))
@@ -887,8 +1054,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       .then((settings) => probeModels(message.apiKey ?? settings.apiKey, {
         onUsage: (sample) => usage.record(sample)
       }))
-      .then((result) => {
+      .then(async (result) => {
         if (result.quota) usage.noteQuota(result.quota.message, result.quota.retryMs);
+        // همان نتیجه برای «نمایش زیرنویس» هم نگه داشته می‌شود
+        if (result.models.length) await writeModelCache(message.apiKey ?? "", result.models);
         respond({ ok: result.models.length > 0, ...result });
       })
       .catch((error) => respond({ ok: false, error: toPayload(error) }));
@@ -978,18 +1147,19 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   }
 
   return false;
-});
+}
 
 /* ══════════════════════ چرخهٔ عمر تب ══════════════════════ */
 
 // اگر تب در حال دوبله بسته شد، جلسه را ببند و خروجی‌ها را ذخیره کن
-chrome.tabs.onRemoved.addListener((tabId) => {
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  await restoring;
   stagedTabs.delete(tabId);
   if (state.stageTabId === tabId) {
     state.stagePhase = "idle";
     state.stageTabId = null;
     state.track = null;
-    trackCues = [];
+    setTrackCues([]);
     publish();
   }
   if (state.phase !== "idle" && state.tabId === tabId) stopDubbing();
@@ -999,8 +1169,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // نشانی تب عوض شد: زیرنویس کهنه هم در صفحه و هم اینجا باید برود.
 // اسکریپت محتوا خودش هم تشخیص می‌دهد؛ این خط دفاعی دوم است، برای حالتی که
 // صفحه کامل بارگذاری شده و اسکریپت تازه از بین رفته باشد.
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (!changeInfo.url) return;
+  await restoring;
   stagedTabs.delete(tabId);
   tellStage(tabId, { type: "dp-stage-clear" });
   if (state.stageTabId === tabId && state.stagePhase !== "idle") {

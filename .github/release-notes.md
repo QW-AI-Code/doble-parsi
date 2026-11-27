@@ -1,4 +1,4 @@
-## Doble Parsi v1.2.0
+## Doble Parsi v1.3.0
 
 **Dub the audio of any browser tab live with AI, then keep the MP3 and the SRT/VTT subtitles named exactly after the video.**
 
@@ -6,20 +6,37 @@
 
 | File | What it is |
 | --- | --- |
-| `doble-parsi-1.2.0-chrome.zip` | Main extension package. Unzip it, then load it in Chrome/Edge via **Load unpacked**. |
-| `doble-parsi-1.2.0.crx` | Signed package (optional). |
+| `doble-parsi-1.3.0-chrome.zip` | Main extension package. Unzip it, then load it in Chrome/Edge via **Load unpacked**. |
+| `doble-parsi-1.3.0.crx` | Signed package (optional). |
 
 ### Install in one minute
 
-1. Download and unzip `doble-parsi-1.2.0-chrome.zip`.
+1. Download and unzip `doble-parsi-1.3.0-chrome.zip`.
 2. Open `chrome://extensions` (or `edge://extensions`).
 3. Turn on **Developer mode**.
-4. Click **Load unpacked** and pick the unzipped folder.
-5. Open the popup, paste your Gemini API key, choose a language, press **Start dubbing**.
+4. Click **Load unpacked** and pick the unzipped folder. Updating from 1.2.0? Press the reload icon on the extension card instead.
+5. Open the popup, paste your Gemini API key, choose a language, press **Start dubbing** or **Show subtitles on the video**.
 
 Requires Chrome or Edge 116+.
 
-### What's new
+### What's new in v1.3.0
+
+| # | Reported problem | What changed |
+| --- | --- | --- |
+| 1 | The model list should be in *API key and language* | The *Subtitle translation model* list, the *Find the models that work on my key* button and its status now sit right under the API key and *Test the key and connection*. |
+| 2 | *Show subtitles* usually showed nothing until *Find the models…* was pressed | The same model probe now runs **automatically** before the first translation, picks the thriftiest working model, remembers it for 12 hours per key, retries once with a fresh probe if a remembered model fails, and skips models whose free-tier quota is zero. |
+| 3 | Subtitles could not be exported after closing the popup; the save button vanished | The subtitle state and cues survive the service worker going to sleep (`chrome.storage.session`). A **Save these subtitles** button was also added to the YouTube quick panel. |
+| 4 | Saved subtitles were scrambled in PotPlayer and other players | Every right-to-left line in a saved SRT/VTT is wrapped in `RLM + RLE … PDF + RLM`, Latin words get `LRE … PDF`, punctuation stays at the correct end, and both formats start with a UTF-8 BOM. |
+
+Also fixed while reviewing the project:
+
+- The model label read "Text translation model" because the key was defined twice in the dictionary.
+- A blank line inside a cue could end an SRT block early.
+- *Start / Stop dubbing* in the popup stayed disabled if the worker did not answer.
+- The Persian part of these release notes had an unclosed RTL block and an outdated model hint.
+- 16 new unit tests; `npm run verify` (lint, 126 tests, build) passes.
+
+### Earlier highlights
 
 - **v1.2.0 — the original audio can be silenced completely.** A dedicated *Original video audio* volume (0–100 %, true silence at 0, plus a Mute button) now controls playback. A separate *Dub voice* volume (0–150 %) lifts a quiet dub.
 - **v1.2.0 — main buttons moved to the top.** *Start dubbing* and *Show subtitles* sit right under the status bar, with a Volume card below them. No scrolling.
@@ -66,7 +83,8 @@ Requires Chrome or Edge 116+.
 | File writes | Only through `chrome.downloads`. Paths are sanitised twice and `..` segments dropped, so writes stay inside the downloads folder. |
 | Bundled encoder | A pre-built WebAssembly MP3 encoder under MPL-2.0, in a worker with no network access, receiving PCM only. |
 | Third-party runtime dependencies | None. The build, lint and test tooling is plain Node.js. |
-| Data retention | Nothing leaves your machine except the audio sent for translation. The session snapshot clears on browser restart. |
+| Data retention | Nothing leaves your machine except the audio sent for translation. The session snapshot and the on-video subtitle cues live in `storage.session` and clear on browser restart. |
+| Model cache | Models that answered on your key are kept in `storage.local` under a 16-hex SHA-256 fingerprint of the key, never the key itself; the list expires after 12 hours. |
 | Artifact integrity | Built by the release workflow and published with a SHA-256 checksum file. |
 
 Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/README.md) · [CHANGELOG](https://github.com/QW-AI-Code/doble-parsi/blob/main/CHANGELOG.md) · [SECURITY](https://github.com/QW-AI-Code/doble-parsi/blob/main/SECURITY.md)
@@ -75,7 +93,7 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 <div dir="rtl">
 
-## دوبله پارسی نسخهٔ <span dir="ltr">v1.2.0</span>
+## دوبله پارسی نسخهٔ <span dir="ltr">v1.3.0</span>
 
 **صدای هر تب مرورگر را زنده و با هوش مصنوعی دوبله کن، بعد فایل <span dir="ltr">MP3</span> و زیرنویس <span dir="ltr">SRT/VTT</span> را دقیقاً هم‌نام همان ویدئو تحویل بگیر.**
 
@@ -83,20 +101,37 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 
 | فایل | چیست |
 | --- | --- |
-| <span dir="ltr">`doble-parsi-1.2.0-chrome.zip`</span> | فایل اصلی اکستنشن. آن را دانلود و از حالت فشرده خارج کن، سپس در کروم با <span dir="ltr">**Load unpacked**</span> بارگذاری کن. |
-| <span dir="ltr">`doble-parsi-1.2.0.crx`</span> | بستهٔ امضاشده (اختیاری). |
+| <span dir="ltr">`doble-parsi-1.3.0-chrome.zip`</span> | فایل اصلی اکستنشن. آن را دانلود و از حالت فشرده خارج کن، سپس در کروم با <span dir="ltr">**Load unpacked**</span> بارگذاری کن. |
+| <span dir="ltr">`doble-parsi-1.3.0.crx`</span> | بستهٔ امضاشده (اختیاری). |
 
 ### نصب در یک دقیقه
 
-۱. فایل <span dir="ltr">`doble-parsi-1.2.0-chrome.zip`</span> را دانلود و از حالت فشرده خارج کن.
+۱. فایل <span dir="ltr">`doble-parsi-1.3.0-chrome.zip`</span> را دانلود و از حالت فشرده خارج کن.
 ۲. در مرورگر <span dir="ltr">`chrome://extensions`</span> (یا <span dir="ltr">`edge://extensions`</span>) را باز کن.
 ۳. گزینهٔ <span dir="ltr">**Developer mode**</span> را روشن کن.
-۴. روی <span dir="ltr">**Load unpacked**</span> بزن و پوشهٔ خارج‌شده را انتخاب کن.
-۵. پاپ‌آپ را باز کن، کلید <span dir="ltr">API</span> جِمینای را بچسبان، زبان را انتخاب کن و **شروع دوبله** را بزن.
+۴. روی <span dir="ltr">**Load unpacked**</span> بزن و پوشهٔ خارج‌شده را انتخاب کن. اگر از نسخهٔ <span dir="ltr">1.2.0</span> به‌روزرسانی می‌کنی، کافی است دکمهٔ بارگذاری دوباره روی کارت افزونه را بزنی.
+۵. پاپ‌آپ را باز کن، کلید <span dir="ltr">API</span> جِمینای را بچسبان، زبان را انتخاب کن و **شروع دوبله** یا **نمایش زیرنویس روی ویدئو** را بزن.
 
 به کروم یا اِج نسخهٔ ۱۱۶ و بالاتر نیاز دارد.
 
-### تازه‌ها
+### تازه‌های نسخهٔ <span dir="ltr">v1.3.0</span>
+
+| # | مشکل گزارش‌شده | چه تغییری کرد |
+| --- | --- | --- |
+| ۱ | فهرست کشویی مدل باید در بخش «کلید <span dir="ltr">API</span> و زبان» باشد | فهرست «مدل ترجمهٔ زیرنویس»، دکمهٔ «یافتن مدل‌هایی که روی کلید من کار می‌کنند» و پیام وضعیتش حالا درست زیر کلید <span dir="ltr">API</span> و دکمهٔ «تست کلید و اتصال» هستند. |
+| ۲ | با «نمایش زیرنویس» در اکثر مواقع زیرنویسی دیده نمی‌شد، مگر بعد از زدن «یافتن مدل‌ها…» | همان بررسی مدل‌ها حالا پیش از اولین ترجمه **خودکار** انجام می‌شود، کم‌مصرف‌ترین مدلِ کارکننده انتخاب و برای همان کلید ۱۲ ساعت به خاطر سپرده می‌شود، اگر مدل ذخیره‌شده شکست بخورد یک بار دیگر بررسی و تکرار می‌شود، و مدل‌هایی که سهمیهٔ رایگانشان صفر است کنار گذاشته می‌شوند. |
+| ۳ | با بستن پاپ‌آپ، خروجی گرفتن از زیرنویس ممکن نبود و دکمهٔ ذخیره حذف می‌شد | وضعیت و کیوهای زیرنویس با خوابیدن سرویس‌ورکر از بین نمی‌روند (<span dir="ltr">`chrome.storage.session`</span>). دکمهٔ **ذخیرهٔ این زیرنویس** به پنل سریع یوتیوب هم اضافه شد. |
+| ۴ | زیرنویس دانلودشده در <span dir="ltr">PotPlayer</span> و پخش‌کننده‌های دیگر به‌هم‌ریخته بود | هر سطر راست‌به‌چپ در فایل <span dir="ltr">SRT/VTT</span> با <span dir="ltr">`RLM + RLE … PDF + RLM`</span> پیچیده می‌شود، کلمه‌های انگلیسی <span dir="ltr">`LRE … PDF`</span> می‌گیرند، علامت‌ها در طرف درست می‌مانند و هر دو فرمت با <span dir="ltr">BOM</span> یونیکد شروع می‌شوند. |
+
+اشکال‌های دیگری که در بازبینی پروژه رفع شد:
+
+- برچسب مدل «مدل ترجمهٔ متن» نوشته می‌شد، چون کلیدش در دیکشنری دو بار تعریف شده بود.
+- سطر خالی داخل یک کیو می‌توانست بلوک <span dir="ltr">SRT</span> را زودتر ببندد.
+- دکمهٔ «شروع/توقف دوبله» در پاپ‌آپ اگر سرویس‌ورکر جواب نمی‌داد غیرفعال می‌ماند.
+- بخش فارسی همین یادداشت ریلیز یک بلوک راست‌چینِ بسته‌نشده و راهنمای قدیمی مدل داشت.
+- ۱۶ تست واحد تازه؛ <span dir="ltr">`npm run verify`</span> (لینت، ۱۲۶ تست و بیلد) سالم می‌گذرد.
+
+### قابلیت‌های نسخه‌های قبل
 
 - **<span dir="ltr">v1.2.0</span> — صدای اصلی کامل قطع می‌شود.** ولوم مستقل «صدای اصلی ویدئو» (۰ تا ۱۰۰٪، صفر = سکوت واقعی، به‌علاوهٔ دکمهٔ قطع) روی پخش اعمال می‌شود. ولوم جدای «صدای دوبله» (۰ تا ۱۵۰٪) دوبلهٔ کم‌صدا را بلند می‌کند.
 - **<span dir="ltr">v1.2.0</span> — دکمه‌های اصلی بالای افزونه.** «شروع دوبله» و «نمایش زیرنویس» زیر نوار وضعیت نشسته‌اند و کارت ولوم زیر آن‌هاست؛ بدون اسکرول.
@@ -142,17 +177,10 @@ Full details: [README](https://github.com/QW-AI-Code/doble-parsi/blob/main/READM
 | نوشتن فایل | فقط از راه <span dir="ltr">`chrome.downloads`</span>. مسیرها دو بار پاک‌سازی می‌شوند و بخش‌های <span dir="ltr">`..`</span> حذف می‌شوند، پس نوشتن داخل پوشهٔ دانلود می‌ماند. |
 | انکودر همراه بسته | انکودر <span dir="ltr">MP3</span> از پیش ساخته‌شده با مجوز <span dir="ltr">MPL-2.0</span>، در ورکر بدون دسترسی شبکه، که فقط <span dir="ltr">PCM</span> می‌گیرد. |
 | وابستگی‌های شخص ثالث | ندارد. ابزار بیلد، لینت و تست همه نود خالص است. |
-| نگهداری داده | هیچ چیز از دستگاه تو بیرون نمی‌رود جز صدایی که برای ترجمه می‌رود. وضعیت جلسه با شروع مرورگر پاک می‌شود. |
+| نگهداری داده | هیچ چیز از دستگاه تو بیرون نمی‌رود جز صدایی که برای ترجمه می‌رود. وضعیت جلسه و کیوهای زیرنویسِ روی ویدئو در <span dir="ltr">`storage.session`</span> هستند و با شروع مرورگر پاک می‌شوند. |
+| حافظهٔ مدل‌ها | مدل‌هایی که روی کلید تو جواب داده‌اند در <span dir="ltr">`storage.local`</span> و زیر اثر انگشت ۱۶ رقمی <span dir="ltr">SHA-256</span> از کلید نگه داشته می‌شوند، نه خود کلید؛ این فهرست بعد از ۱۲ ساعت منقضی می‌شود. |
 | اصالت فایل‌ها | با ورک‌فلوی ریلیز ساخته و همراه فایل چک‌سام <span dir="ltr">SHA-256</span> منتشر می‌شوند. |
 
 جزئیات کامل: [<span dir="ltr">README فارسی</span>](https://github.com/QW-AI-Code/doble-parsi/blob/main/README.fa.md) · [<span dir="ltr">CHANGELOG</span>](https://github.com/QW-AI-Code/doble-parsi/blob/main/CHANGELOG.md) · [<span dir="ltr">SECURITY</span>](https://github.com/QW-AI-Code/doble-parsi/blob/main/SECURITY.md)
 
-
-___
-<div dir="rtl">
-
-⚠️ **توجه:**  
-از بخش **«نمایش زیرنویس روی ویدیو»**، روی دکمه‌ی **«یافتن مدل‌هایی که روی کلید من کار می‌کنند»** کلیک کنید. سپس از میان گزینه‌های موجود، مدل `gemini-3.1-flash-lite-preview` را انتخاب نمایید. سهمیهٔ روزانه (Quota) این مدل بسیار دیرتر تمام می‌شود و برای استفاده مداوم پایدارتر است؛ با این حال، می‌توانید سایر مدل‌ها را نیز بررسی کنید، اما توجه داشته باشید که ممکن است سریع‌تر به سقف محدودیت مصرف برسند.
-
 </div>
-

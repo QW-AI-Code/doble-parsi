@@ -2,7 +2,7 @@
  * دکمهٔ میانبر روی پخش‌کنندهٔ یوتیوب + مینی‌پنل.
  *
  * یک دکمه کنار چرخ‌دندهٔ یوتیوب می‌نشیند و پنل کوچکی باز می‌کند با:
- *   شروع/توقف دوبله · نمایش/پنهان‌کردن زیرنویس · ولوم صدای اصلی · ولوم دوبله
+ *   شروع/توقف دوبله · نمایش/پنهان‌کردن زیرنویس · ذخیرهٔ زیرنویس · ولوم صدای اصلی · ولوم دوبله
  * تا کاربر هر بار مجبور نباشد پاپ‌آپ افزونه را باز کند.
  *
  * فقط روی www.youtube.com بارگذاری می‌شود (تنها content_script مانیفست).
@@ -29,6 +29,8 @@
       dubStop: "توقف دوبله",
       subStart: "نمایش زیرنویس",
       subStop: "پنهان‌کردن زیرنویس",
+      save: "ذخیرهٔ این زیرنویس",
+      saved: "زیرنویس در پوشهٔ دانلود ذخیره شد.",
       original: "صدای اصلی ویدئو",
       dub: "صدای دوبله",
       mute: "قطع",
@@ -45,6 +47,8 @@
       dubStop: "Stop dubbing",
       subStart: "Show subtitles",
       subStop: "Hide subtitles",
+      save: "Save these subtitles",
+      saved: "Subtitles saved to your Downloads folder.",
       original: "Original video audio",
       dub: "Dub voice",
       mute: "Mute",
@@ -78,6 +82,8 @@
       background: linear-gradient(100deg, #2b4fd8, #5b3fd1); color: #fff;
     }
     button.sub { background: linear-gradient(100deg, #064E3B, #115E59); }
+    button.save { background: rgba(255,255,255,.14); }
+    button[hidden] { display: none; }
     button.is-on { filter: saturate(0.6) brightness(0.8); outline: 1px solid rgba(255,255,255,.35); }
     button:hover { filter: brightness(1.12); }
     button:disabled { opacity: 0.5; cursor: default; }
@@ -99,6 +105,7 @@
   let lang = "fa";
   let remote = null;           // آخرین وضعیت سرویس‌ورکر
   let busy = false;
+  let noteUntil = 0;           // پیام موفقیت چند ثانیه می‌ماند
   let pollTimer = null;
   let sendTimer = null;
   let mutedFrom = 1;
@@ -156,6 +163,8 @@
     const title = el("h2");
     const dubBtn = el("button", { type: "button" });
     const subBtn = el("button", { type: "button", class: "sub" });
+    const saveBtn = el("button", { type: "button", class: "save" });
+    saveBtn.hidden = true;
 
     const originalOut = el("span", { class: "out" });
     const originalLabel = el("span");
@@ -170,7 +179,7 @@
 
     panel.append(
       title,
-      el("div", { class: "btns" }, dubBtn, subBtn),
+      el("div", { class: "btns" }, dubBtn, subBtn, saveBtn),
       el("div", { class: "field" },
         el("div", { class: "head" }, originalLabel, originalOut),
         el("div", { class: "row" }, originalRange, muteBtn)),
@@ -186,10 +195,12 @@
       panel.addEventListener(type, (event) => event.stopPropagation());
     }
 
-    refs = { root, panel, title, dubBtn, subBtn, originalOut, originalLabel, originalRange, muteBtn, dubOut, dubLabel, dubRange, note };
+    refs = { root, panel, title, dubBtn, subBtn, saveBtn, originalOut, originalLabel, originalRange, muteBtn, dubOut, dubLabel, dubRange, note };
 
     dubBtn.addEventListener("click", () => act(dubRunning() ? "dp-mini-stop" : "dp-mini-start"));
     subBtn.addEventListener("click", () => act("dp-mini-stage", { on: !subRunning() }));
+    // خروجی زیرنویس بدون نیاز به باز بودن پاپ‌آپ افزونه
+    saveBtn.addEventListener("click", () => act("dp-mini-save", {}, tr("saved")));
 
     originalRange.addEventListener("input", () => volumeInput());
     dubRange.addEventListener("input", () => volumeInput());
@@ -225,6 +236,9 @@
     subBtn.textContent = subRunning() ? tr("subStop") : tr("subStart");
     subBtn.classList.toggle("is-on", subRunning());
     subBtn.disabled = busy || remote?.stagePhase === "working";
+    refs.saveBtn.textContent = tr("save");
+    refs.saveBtn.hidden = remote?.stagePhase !== "track";
+    refs.saveBtn.disabled = busy;
 
     // وسط کشیدن لغزنده، مقدار از سرویس‌ورکر روی آن نمی‌نشیند
     const dragging = refs.root.activeElement;
@@ -258,7 +272,7 @@
     if (answer.uiLang === "fa" || answer.uiLang === "en") lang = answer.uiLang;
   }
 
-  async function act(type, extra = {}) {
+  async function act(type, extra = {}, success = "") {
     if (busy) return;
     busy = true;
     setNote(tr("working"));
@@ -268,7 +282,8 @@
     if (!answer) setNote(alive() ? tr("failed") : tr("gone"), true);
     else {
       adopt(answer);
-      setNote(answer.ok === false ? (answer.errorText || tr("failed")) : "", answer.ok === false);
+      setNote(answer.ok === false ? (answer.errorText || tr("failed")) : success, answer.ok === false);
+      if (success && answer.ok !== false) noteUntil = Date.now() + 5000;
     }
     paint();
   }
@@ -295,7 +310,7 @@
       return;
     }
     adopt(answer);
-    if (!busy) {
+    if (!busy && Date.now() > noteUntil) {
       const err = answer.phase === "idle" ? answer.error : null;
       if (!err) setNote(answer.phase === "live" ? tr("live") : "");
     }
